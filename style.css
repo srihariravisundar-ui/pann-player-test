@@ -1,0 +1,305 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400&family=Playfair+Display:ital,wght@0,400;0,600&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+    --bg-color: #000000;
+    --panel-bg: #0a0a0a;
+    --border-color: rgba(255, 255, 255, 0.08);
+    --text-primary: #ffffff;
+    --text-secondary: #888888;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-color);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100dvh;
+    width: 100vw;
+    font-weight: 300;
+}
+
+h1, h2, h3, #track-title, .layer-label {
+    font-family: 'Playfair Display', serif;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+}
+
+.container {
+    display: flex;
+    height: 100%;
+    width: 100%;
+}
+
+/* --- Artwork Canvas --- */
+.artwork-section {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#artwork {
+    position: relative;
+    width: 75vh;
+    height: 75vh;
+    max-width: 90vw;
+    max-height: 90vh;
+    transition: all 1s ease;
+}
+
+.layerImage {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: opacity 1.2s ease;
+}
+
+.artwork-overlay-controls {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    z-index: 5;
+}
+
+.overlay-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.overlay-btn:hover {
+    color: var(--text-primary);
+}
+
+/* --- Loading States --- */
+#loading-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    z-index: 10;
+}
+
+.loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--border-color);
+    border-top: 1px solid var(--text-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+#loading-text {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* --- Control Panel --- */
+.control-section {
+    width: 420px;
+    background: var(--panel-bg);
+    border-left: 1px solid var(--border-color);
+    padding: 2.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    overflow-y: auto;
+}
+
+.player-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+#track-title {
+    font-size: 1.5rem;
+}
+
+.connection-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.status-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #ffffff;
+}
+.status-dot.loading { opacity: 0.4; animation: pulse 1s infinite; }
+.status-dot.error { background: #ff4444; }
+
+@keyframes pulse { 50% { opacity: 1; } }
+
+/* --- Transport Controls --- */
+.player-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+}
+
+.control-btn {
+    flex: 1;
+    padding: 0.8rem 0.5rem;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.control-btn:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.control-btn.primary {
+    background: var(--text-primary);
+    color: var(--bg-color);
+}
+
+.control-btn.primary:hover {
+    background: rgba(255, 255, 255, 0.8);
+}
+
+/* --- Progress Bar --- */
+.time-display {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 1px;
+    background: var(--border-color);
+    cursor: pointer;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--text-primary);
+    width: 0%;
+    transition: width 0.1s linear;
+}
+
+/* --- Status Text --- */
+.loading-section { margin-top: 1rem; }
+.loading-text { font-size: 0.7rem; color: var(--text-secondary); text-align: center; margin-bottom: 0.5rem; }
+.loading-bar { width: 100%; height: 1px; background: rgba(255,255,255,0.1); }
+.loading-fill { height: 100%; background: var(--text-primary); width: 0%; transition: width 0.3s ease; }
+
+/* --- Layers Section (Edit Mode) --- */
+.section-header h3 {
+    font-size: 1.2rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-secondary);
+}
+
+.layer-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.layer-control {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.layer-label {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.layer-select {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 0.5rem 0;
+    font-size: 0.8rem;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.layer-select:hover, .layer-select:focus {
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.layer-select option {
+    background: var(--panel-bg);
+    color: var(--text-primary);
+}
+
+/* --- Minimal Tags (Listening Mode) --- */
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.minimal-tag {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding-right: 8px;
+    border-right: 1px solid var(--border-color);
+}
+
+.minimal-tag:last-child {
+    border-right: none;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* --- Mobile --- */
+@media (max-width: 768px) {
+    .container { flex-direction: column; }
+    .artwork-section { height: 50dvh; flex: none; }
+    #artwork { width: 90vw; height: 90vw; }
+    .control-section { width: 100%; flex: 1; border-left: none; border-top: 1px solid var(--border-color); padding: 1.5rem; }
+    .player-controls { gap: 0.3rem; }
+    .control-btn { font-size: 0.65rem; padding: 0.6rem 0.2rem; }
+}

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pann - Pradeep Kumar</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="artwork-section">
+            <div id="artwork">
+                <img id="baseImage" class="layerImage" alt="Pann Canvas">
+                <div id="loading-overlay">
+                    <div class="loading-spinner"></div>
+                    <div id="loading-text">Awakening Canvas...</div>
+                </div>
+            </div>
+            
+            <div class="artwork-overlay-controls">
+                <button id="fullscreenBtn" class="overlay-btn" title="Toggle Fullscreen">⛶</button>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <div class="player">
+                <div class="player-header">
+                    <h3 id="track-title">Pann Blueprint</h3>
+                    <div class="connection-status">
+                        <span id="connection-indicator" class="status-dot"></span>
+                        <span id="connection-text">Ready</span>
+                    </div>
+                </div>
+
+                <div class="player-controls">
+                    <button id="playBtn" class="control-btn primary">Play</button>
+                    <button id="pauseBtn" class="control-btn secondary">Pause</button>
+                    <button id="stopBtn" class="control-btn secondary">Stop</button>
+                    <button id="randomizeBtn" class="control-btn secondary">Shuffle</button>
+                </div>
+
+                <div class="progress-section">
+                    <div class="time-display">
+                        <span id="current-time">0:00</span>
+                        <span id="total-time">0:00</span>
+                    </div>
+                    <div class="progress-bar" id="progressBar">
+                        <div id="progress-fill" class="progress-fill"></div>
+                    </div>
+                </div>
+
+                <div class="loading-section">
+                    <div id="loading-info" class="loading-text">Ready</div>
+                    <div class="loading-bar">
+                        <div id="loading-fill" class="loading-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layer-controls-section">
+                <div class="section-header">
+                    <h3>Layers</h3>
+                </div>
+                
+                <div class="layer-controls" id="controls">
+                    </div>
+
+                <div id="active-tags" class="tags-container hidden"></div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
