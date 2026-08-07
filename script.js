@@ -1,18 +1,19 @@
 (async function () {
     const JSON_URL = "https://gateway.pinata.cloud/ipfs/QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq";
     const IPFS_GATEWAYS = ['https://ipfs.io/ipfs/', 'https://cloudflare-ipfs.com/ipfs/', 'https://dweb.link/ipfs/'];
-    const CACHE_NAME = 'pann-stems-v1';
+    const CACHE_NAME = 'pann-stems-v2'; // Bumped cache version to flush old memory
 
     // Core Engine State
     const state = {
         audioCtx: null,
         selections: { visuals: {}, audio: {} },
-        audioBuffers: {}, // CRITICAL FIX: Now mapped explicitly by CID, not Layer ID
+        audioBuffers: {}, 
         activeSources: {}, 
         isPlaying: false,
         startTime: 0,
         pauseTime: 0,
         duration: 0,
+        isFetching: false // Prevents overlapping fetch calls
     };
 
     let animationFrameId = null;
@@ -121,7 +122,7 @@
             const arrayBuffer = await response.arrayBuffer();
             const audioBuffer = await state.audioCtx.decodeAudioData(arrayBuffer);
             
-            // MAP TO CID (Fixes the update bug)
+            // Map strictly to CID to prevent infinite memory growth
             state.audioBuffers[cid] = audioBuffer;
             return audioBuffer;
         } catch (e) {
@@ -138,6 +139,9 @@
     }
 
     async function loadMix() {
+        if (state.isFetching) return;
+        state.isFetching = true;
+
         setStatus("Loading Blueprint...", "loading");
         UI.loadingFill.style.width = '0%';
         UI.playBtn.disabled = true;
@@ -147,7 +151,6 @@
         const totalToLoad = activeAudioCIDs.length;
         let loadedCount = 0;
         
-        // Live Progress Math Fix
         for (const cid of activeAudioCIDs) {
             if (!state.audioBuffers[cid]) {
                 const p = fetchAudio(cid).then(() => {
@@ -164,7 +167,6 @@
         try {
             await Promise.all(promises);
             
-            // Calculate Max Duration explicitly
             state.duration = 0;
             for (const cid of activeAudioCIDs) {
                 if (state.audioBuffers[cid] && state.audioBuffers[cid].duration > state.duration) {
@@ -174,17 +176,18 @@
             
             UI.totalTimeEl.textContent = formatTime(state.duration);
             setStatus("Ready", "ready");
-            setTimeout(() => { UI.loadingFill.style.width = '0%'; }, 1000); // clear bar cleanly
+            setTimeout(() => { UI.loadingFill.style.width = '0%'; }, 1000); 
         } catch (e) {
             setStatus("Network Error", "error");
         } finally {
             UI.playBtn.disabled = false;
+            state.isFetching = false;
         }
     }
 
     function playAudio(offset = 0) {
         if (state.duration === 0) return;
-        stopAudio(false); // Clean slate
+        stopAudio(false); 
 
         Object.entries(state.selections.audio).forEach(([layerId, cid]) => {
             if (cid && state.audioBuffers[cid]) {
@@ -204,9 +207,15 @@
         requestAnimationFrame(updateLoop);
     }
 
-    // Handled Pause vs Stop logic
     function stopAudio(reset = true) {
-        Object.values(state.activeSources).forEach(src => { try { src.stop(); } catch(e){} });
+        // Explicit Garbage Collection: Stop and disconnect nodes from memory immediately
+        Object.values(state.activeSources).forEach(src => { 
+            try { 
+                src.stop(); 
+                src.disconnect(); 
+            } catch(e){} 
+        });
+        
         state.activeSources = {};
         state.isPlaying = false;
         
@@ -219,7 +228,6 @@
             toggleEditMode(true);
             setStatus("Stopped", "ready");
         } else {
-            // Save the exact millisecond we paused
             state.pauseTime = (state.audioCtx.currentTime - state.startTime) % state.duration;
             setStatus("Paused", "ready");
             toggleEditMode(true);
@@ -254,7 +262,6 @@
         state.selections.audio[id] = audioCid;
         updateVisuals();
 
-        // If user modifies while stopped, playAudio handles fetching correct new CID.
         if (state.isPlaying) {
             await loadMix();
             playAudio(state.pauseTime); 
@@ -290,7 +297,8 @@
                     const select = document.createElement("select");
                     select.className = "layer-select";
                     
-                    // "None" IS GONE.
+                    // CRITICAL FIX: Embed the true architectural ID physically in the dropdown
+                    select.dataset.layerId = layerId; 
                     
                     layer.states.options.forEach((opt, idx) => {
                         const option = document.createElement("option");
@@ -347,10 +355,11 @@
         
         UI.controls.querySelectorAll('.layer-select').forEach(select => {
             select.selectedIndex = Math.floor(Math.random() * select.options.length);
-            const layerId = select.closest('.layer-control').querySelector('.layer-label').textContent;
+            
+            // CRITICAL FIX: Target exactly the right layer based on the hidden data attribute
+            const realId = select.dataset.layerId; 
             const data = JSON.parse(select.value);
             
-            const realId = Object.keys(state.selections.visuals).find(k => k.includes(layerId)) || `layer_${Math.random()}`;
             state.selections.visuals[realId] = data.visual;
             state.selections.audio[realId] = data.audio;
         });
