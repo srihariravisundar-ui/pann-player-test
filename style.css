@@ -175,19 +175,19 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
 }
 
 /* ====================================================
-   FOOLPROOF MOBILE FLEX LAYOUT (No Absolute Collapsing)
+   TRUE MOBILE FLEX ARCHITECTURE (No Absolute Glitches)
    ==================================================== */
 @media (max-width: 768px) {
     body {
         overflow-y: auto !important;
     }
     .container {
-        display: flex;
-        flex-direction: column;
-        height: 100dvh;
-        width: 100vw;
-        position: relative;
-        overflow-y: auto;
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100dvh !important;
+        width: 100vw !important;
+        position: relative !important;
+        overflow-y: auto !important;
     }
     .artwork-section {
         position: fixed !important;
