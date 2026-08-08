@@ -25,28 +25,16 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .hidden { display: none !important; }
 
 /* --- Gateway Page & Dynamic Background --- */
-/* --- Gateway Page & Dynamic Background --- */
 #gateway-page { 
-    position: relative; 
-    display: flex; 
-    flex-direction: column; /* Changed for better scrolling */
-    text-align: center; 
-    padding: 4rem 2rem; /* Added padding so content doesn't hit edges when scrolling */
-    overflow-y: auto; /* Allows scrolling when "Learn More" expands */
-    overflow-x: hidden;
+    position: relative; display: flex; flex-direction: column; text-align: center; 
+    padding: 4rem 2rem; overflow-y: auto; overflow-x: hidden;
 }
 .gateway-bg, .player-bg { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; overflow: hidden; z-index: 1; }
 .gateway-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%); z-index: 2; pointer-events: none; }
 
 .gateway-content { 
-    margin: auto; /* Centers content, but prevents top-cutoff when scrolling */
-    position: relative; 
-    z-index: 3; 
-    max-width: 800px; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 2.5rem; 
-    align-items: center; 
+    margin: auto; position: relative; z-index: 3; max-width: 800px; 
+    display: flex; flex-direction: column; gap: 2.5rem; align-items: center; 
 }
 .gateway-content h1 { font-size: 5rem; letter-spacing: 4px; text-shadow: 0 4px 20px rgba(0,0,0,0.8); }
 
@@ -61,7 +49,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .artists-section { margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 2rem; width: 100%; }
 .artists-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 1.5rem; text-shadow: 0 2px 10px rgba(0,0,0,0.9); }
 
-/* New Dedicated Gateway Tags (Fixes the invisible artists bug) */
+/* Gateway Independent Tags */
 .gateway-tags { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-height: 30vh; overflow-y: auto; padding-bottom: 1rem; }
 .gateway-tags::-webkit-scrollbar { width: 4px; }
 .gateway-tags::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
@@ -83,26 +71,19 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
     100% { transform: translate(-50%, -52%) translateZ(0); }
 }
 
-
 /* --- Pure Transparent Player Container --- */
 .container { position: relative; height: 100%; width: 100%; overflow: hidden; }
 
-/* Artwork is perfectly centered at all times */
 .artwork-section { 
     position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; 
     display: flex; align-items: center; justify-content: center; z-index: 2; 
     pointer-events: none; /* Prevents invisible canvas from blocking clicks */
 }
-
-/* FIX: Removed the 75vh bounding box. 
-   Now it matches the Gateway scale perfectly at 100vw / 100vh.
-*/
-#artwork { 
-    position: relative; width: 100vw; height: 100vh; max-width: none; max-height: none; 
-}
+#artwork { position: relative; width: 100vw; height: 100vh; max-width: none; max-height: none; }
 
 #loading-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 1rem; z-index: 10; }
 .loading-spinner { width: 24px; height: 24px; border: 1px solid rgba(255,255,255,0.2); border-top: 1px solid var(--text-primary); border-radius: 50%; animation: spin 1s linear infinite; }
+
 /* --- HUD Overlays (Text Shadows for Readability) --- */
 .hud-text { text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.6); }
 
@@ -115,6 +96,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
     position: absolute; top: 50%; right: 3rem; transform: translateY(-50%); 
     width: 320px; pointer-events: auto; 
     transition: opacity 0.8s ease, transform 0.8s ease; 
+    will-change: opacity, transform;
 }
 .section-header h3 { font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-secondary); }
 .layer-controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem 0.75rem; }
@@ -122,8 +104,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .layer-label { font-size: 0.7rem; color: var(--text-primary); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
 
 .layer-select { 
-    width: 100%; background: transparent; 
-    border: 1px solid rgba(255, 255, 255, 0.3); 
+    width: 100%; background: transparent; border: 1px solid rgba(255, 255, 255, 0.3); 
     color: var(--text-secondary); padding: 0.5rem; border-radius: 4px;
     font-size: 0.75rem; font-family: 'Inter', sans-serif; cursor: pointer; outline: none; 
     transition: all 0.3s ease; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
@@ -132,11 +113,12 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .layer-select:hover, .layer-select:focus { border-color: rgba(255, 255, 255, 0.8); }
 .layer-select option { background: #000; color: var(--text-primary); text-shadow: none; }
 
-/* Left Side: Playing Tags */
+/* Left Side / Top Mobile: Playing Tags */
 .tags-container { 
     position: absolute; top: 50%; left: 3rem; transform: translateY(-50%); 
     display: flex; flex-direction: column; gap: 0.8rem; pointer-events: auto; 
     opacity: 0; transition: opacity 0.8s ease, transform 0.8s ease; 
+    will-change: opacity, transform;
 }
 .minimal-tag { 
     color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; 
@@ -157,18 +139,16 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .player-controls { display: flex; justify-content: center; align-items: center; gap: 2rem; margin-bottom: 1.5rem; width: 100%; }
 .control-btn { 
     background: transparent; border: none; color: var(--text-primary); 
-    cursor: pointer; transition: all 0.3s ease; 
-    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.8));
+    cursor: pointer; transition: transform 0.3s ease, color 0.3s ease; 
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.8)); will-change: transform;
 }
 .control-btn:hover { transform: scale(1.15); color: #fff; }
 
-/* Thick, prominent progress bar */
 .progress-section { width: 100%; }
 .time-display { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.75rem; }
 .progress-bar { 
     width: 100%; height: 8px; background: rgba(255,255,255,0.25); 
-    cursor: pointer; position: relative; border-radius: 4px; 
-    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    cursor: pointer; position: relative; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
 .progress-fill { height: 100%; background: var(--text-primary); width: 0%; border-radius: 4px; position: relative; box-shadow: 0 0 10px rgba(255,255,255,0.3); }
 .progress-fill::after { 
@@ -188,16 +168,10 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 /* ====================================================
    THE CINEMATIC "PLAYING" STATE
    ==================================================== */
-/* Fade out the right side dropdowns cleanly */
 body.playing .layer-controls-section { opacity: 0; pointer-events: none; transform: translateY(-50%) translateX(20px); }
-
-/* Fade in the left side minimalist tags cleanly */
 body.playing .tags-container { opacity: 1; pointer-events: auto; transform: translateY(-50%) translateX(0); }
-
-/* Hide redundant UI elements */
 body.playing .player-header,
 body.playing .loading-section { opacity: 0; pointer-events: none; display: none !important; }
-
 body.playing .player-controls { margin-bottom: 0.5rem; }
 
 /* --- Responsive Scaling (TV, Desktop, Tablet, Mobile) --- */
@@ -211,7 +185,6 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
     .layer-select { font-size: 1rem; padding: 0.8rem; }
     .layer-label { font-size: 0.9rem; }
     .minimal-tag { font-size: 1rem; }
-    #artwork { width: 85vh; height: 85vh; }
 }
 
 /* Standard Laptops & Small Desktops */
@@ -219,48 +192,54 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
     .layer-controls-section { right: 2rem; width: 280px; }
     .tags-container { left: 2rem; }
     .gateway-content h1 { font-size: 4rem; }
-    #artwork { width: 65vh; height: 65vh; }
 }
 
 /* Tablets (Portrait & Landscape) */
 @media (max-width: 768px) {
-    .container { flex-direction: column; }
-    #artwork { width: 85vw; height: 85vw; }
     .gateway-content h1 { font-size: 3.5rem; letter-spacing: 2px; }
     .description { font-size: 0.85rem; line-height: 1.6; }
     
-    /* Move selectors above the player safely out of the way */
     .layer-controls-section { 
-        top: 3rem; right: 50%; transform: translateX(50%); 
+        top: 4rem; right: 50%; transform: translateX(50%); 
         width: 90%; 
     }
     body.playing .layer-controls-section { transform: translateX(50%) translateY(-20px); }
 
-    /* Tags stack neatly near top center when playing */
+    /* Tags span center horizontally in playing mode */
     .tags-container { 
-        top: 3rem; left: 50%; transform: translateX(-50%); 
-        width: 90%; align-items: center; text-align: center; 
+        top: 4rem; left: 50%; transform: translateX(-50%); 
+        width: 95%; align-items: center; text-align: center; 
         gap: 0.5rem; flex-direction: row; justify-content: center;
+        flex-wrap: wrap; 
     }
     body.playing .tags-container { transform: translateX(-50%) translateY(0); }
     
-    .player { bottom: 2.5rem; }
-    .overlay-btn { top: 1rem; right: 1rem; }
+    .player { bottom: 3rem; width: 90%; }
+    .overlay-btn { top: 1.5rem; right: 1.5rem; z-index: 50; }
 }
 
-/* Mobile Phones */
+/* Mobile Phones (Android/iOS) */
 @media (max-width: 480px) {
     .gateway-content h1 { font-size: 2.8rem; }
-    #artwork { width: 95vw; height: 95vw; }
-    .player { width: 95%; bottom: 1.5rem; }
     
-    /* Make the dropdowns a 1-column list on tiny screens to remain readable */
     .layer-controls { grid-template-columns: 1fr; }
     
-    .control-btn svg { width: 20px; height: 20px; }
-    #icon-play, #icon-pause { width: 32px; height: 32px; }
-    .player-controls { gap: 1.5rem; }
+    /* SAFE AREA UX FIX: Push player safely above Android OS navigation bar */
+    .player { width: 92%; bottom: 4.5rem; }
     
-    .tags-container { top: 2rem; }
-    .minimal-tag { font-size: 0.6rem; }
+    .player-controls { gap: 1.5rem; margin-bottom: 1.5rem; }
+    .control-btn svg { width: 22px; height: 22px; }
+    #icon-play, #icon-pause { width: 36px; height: 36px; }
+    
+    /* Mobile Pill styling for Tags */
+    .tags-container { top: 3rem; gap: 6px; }
+    .minimal-tag { 
+        font-size: 0.65rem; 
+        padding: 4px 10px; 
+        border-right: none; 
+        background: rgba(0, 0, 0, 0.45); 
+        border-radius: 12px; 
+        border: 1px solid rgba(255,255,255,0.1);
+        text-shadow: none;
+    }
 }
