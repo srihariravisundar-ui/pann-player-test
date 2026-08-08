@@ -1,48 +1,40 @@
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 html, body {
-    /* Hard-lock viewport to prevent iOS Safari layout collapse */
-    position: fixed; 
-    inset: 0;
+    /* Locks iOS viewport from breaking */
+    position: fixed; inset: 0;
     overflow: hidden;
-    background: #000;
-    color: #fff;
+    background: #000; color: #fff;
     font-family: 'Inter', sans-serif;
     overscroll-behavior: none;
-    -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
 
-/* Backgrounds & Artworks */
+/* Reverted Background & Artworks */
 .background-container, .artwork-container {
     position: absolute; inset: 0; 
     width: 100%; height: 100%;
-    display: flex; align-items: center; justify-content: center;
     pointer-events: none;
 }
 .background-container { z-index: 1; }
-.artwork-container { z-index: 2; }
 
-/* Identical scaling rules to guarantee flawless alignment */
-.bg-layer-cover, .floating-layer {
-    position: absolute; 
-    width: 100%; height: 100%;
-    object-fit: cover; 
-    object-position: center;
-    opacity: 0; 
-    transition: opacity 1.5s ease;
-    -webkit-user-drag: none;
-    transform: translateZ(0); /* Hardware acceleration */
+.artwork-container { 
+    z-index: 2; 
+    display: flex; align-items: center; justify-content: center;
 }
 
-/* Gentle vertical breathing to prevent iOS VRAM crashing */
-.artwork-container {
-    animation: breathe 8s ease-in-out infinite;
+/* Background is full bleed */
+.bg-layer-cover {
+    position: absolute; width: 100%; height: 100%;
+    object-fit: cover; opacity: 0; transition: opacity 1.5s ease;
 }
-@keyframes breathe {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
+
+/* Foreground layers are contained perfectly inside the viewport */
+.layerImage {
+    position: absolute;
+    width: 85vw; height: 85vw; max-width: 75vh; max-height: 75vh;
+    object-fit: contain; opacity: 0; transition: opacity 1.5s ease;
 }
 
 .layer-visible { opacity: 1 !important; }
@@ -50,13 +42,11 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
 /* UI Overlay */
 .ui-container {
     position: absolute; inset: 0; z-index: 10;
-    pointer-events: none; 
-    display: flex; flex-direction: column;
+    pointer-events: none; display: flex; flex-direction: column;
 }
 
 .page {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column;
+    position: absolute; inset: 0; display: flex; flex-direction: column;
     opacity: 0; pointer-events: none; transition: opacity 0.8s ease;
 }
 .page.active { opacity: 1; pointer-events: auto; }
@@ -65,7 +55,7 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
 /* Gateway */
 #gateway-page {
     align-items: center; justify-content: center;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0,0,0,0.75);
     overflow-y: auto; -webkit-overflow-scrolling: touch;
     padding: 2rem;
 }
@@ -82,25 +72,16 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
 }
 
 .artists-section { margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem; }
-.gateway-tags {
-    display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
-}
+.gateway-tags { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .gateway-tags .tag { font-size: 0.7rem; color: #aaa; text-transform: uppercase; }
 
-/* Player Page Layout */
-#player-page {
-    justify-content: space-between;
-}
-.player-top-left {
-    padding: max(20px, env(safe-area-inset-top)) 20px 20px;
-    pointer-events: none;
-}
+/* Player Page */
+#player-page { justify-content: space-between; }
+.player-top-left { padding: max(20px, env(safe-area-inset-top)) 20px 20px; pointer-events: none; }
 .tags-stack { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 
-/* Pure transparent tags - No dark backgrounds */
 .playing-tag {
-    font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;
-    color: #fff;
+    font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #fff;
     text-shadow: 0px 2px 6px rgba(0,0,0,1), 0px 0px 4px rgba(0,0,0,0.8);
     opacity: 0; transition: opacity 0.5s ease;
 }
@@ -109,15 +90,12 @@ body.playing .playing-tag { opacity: 1; }
 .player-bottom {
     padding: 20px 20px max(20px, env(safe-area-inset-bottom));
     pointer-events: auto; display: flex; flex-direction: column; gap: 2rem;
-    /* Gentle gradient from the bottom edge purely to make white text readable over bright artwork */
     background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
 }
 
-/* Dropdowns */
 .layer-dropdowns {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem 2rem;
-    max-width: 800px; margin: 0 auto; width: 100%;
-    transition: opacity 0.5s ease;
+    max-width: 800px; margin: 0 auto; width: 100%; transition: opacity 0.5s ease;
 }
 body.playing .layer-dropdowns { opacity: 0; pointer-events: none; }
 
@@ -130,7 +108,6 @@ body.playing .layer-dropdowns { opacity: 0; pointer-events: none; }
 }
 .dropdown-group select option { background: #111; color: #fff; }
 
-/* Transport Dock */
 .transport-dock { width: 100%; max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; }
 .progress-wrapper { display: flex; align-items: center; gap: 1rem; font-size: 0.75rem; font-variant-numeric: tabular-nums; text-shadow: 0 1px 4px rgba(0,0,0,0.9); }
 .progress-bar { flex: 1; height: 12px; background: rgba(255,255,255,0.2); border-radius: 6px; overflow: hidden; cursor: pointer; position: relative; }
@@ -140,7 +117,6 @@ body.playing .layer-dropdowns { opacity: 0; pointer-events: none; }
 .icon-btn { background: transparent; border: none; cursor: pointer; padding: 8px; transition: transform 0.2s; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.8)); }
 .icon-btn:active { transform: scale(0.9); }
 
-/* Loading Spinner */
 #loading-overlay {
     position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.8);
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
