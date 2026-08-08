@@ -27,7 +27,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 /* --- Gateway Page --- */
 #gateway-page { 
     position: relative; display: flex; flex-direction: column; text-align: center; 
-    padding: 4rem 2rem; overflow-y: auto; overflow-x: hidden;
+    padding: 4rem 2rem; overflow-y: auto; overflow-x: hidden; height: 100%;
 }
 .gateway-bg, .player-bg { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; overflow: hidden; z-index: 1; }
 .gateway-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%); z-index: 2; pointer-events: none; }
@@ -52,7 +52,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .gateway-tags { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-height: 30vh; overflow-y: auto; padding-bottom: 1rem; }
 .gateway-tags::-webkit-scrollbar { width: 4px; }
 .gateway-tags::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
-.gateway-tags .minimal-tag { color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding-right: 8px; border-right: 1px solid var(--border-color); text-shadow: 0 2px 8px rgba(0,0,0,0.9); opacity: 0.9; background: transparent; border-radius: 0; padding-left: 0; padding-top: 0; padding-bottom: 0; }
+.gateway-tags .minimal-tag { color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding-right: 8px; border-right: 1px solid rgba(255,255,255,0.2); text-shadow: 0 2px 8px rgba(0,0,0,0.9); opacity: 0.9; background: transparent; border-radius: 0; padding-left: 0; padding-top: 0; padding-bottom: 0; }
 .gateway-tags .minimal-tag:last-child { border-right: none; }
 
 /* --- Fully Opaque Cinematic Artwork Layers --- */
@@ -66,8 +66,8 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
     100% { transform: translate(-50%, -52%) translateZ(0); }
 }
 
-/* --- Pure Transparent Player Container --- */
-.container { position: relative; height: 100%; width: 100%; overflow: hidden; }
+/* --- Player Container --- */
+.container { position: relative; height: 100%; width: 100%; overflow: hidden; display: flex; }
 
 .artwork-section { 
     position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; 
@@ -86,7 +86,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .overlay-btn { position: absolute; top: 2rem; right: 2rem; background: transparent; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer; transition: transform 0.3s ease; pointer-events: auto; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.8)); }
 .overlay-btn:hover { transform: scale(1.1); }
 
-/* Right Side: Edit Dropdowns */
+/* Right Side: Edit Dropdowns (Desktop) */
 .layer-controls-section { 
     position: absolute; top: 50%; right: 3rem; transform: translateY(-50%); 
     width: 320px; pointer-events: auto; transition: opacity 0.8s ease, transform 0.8s ease; 
@@ -149,7 +149,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text-primary); color: var(--bg-color); padding: 1rem 2rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; z-index: 100; transition: opacity 0.3s; }
 
 /* ====================================================
-   THE CINEMATIC "PLAYING" STATE
+   THE CINEMATIC "PLAYING" STATE (Desktop & General)
    ==================================================== */
 body.playing .layer-controls-section { opacity: 0; pointer-events: none; transform: translateY(-50%) translateX(20px); }
 body.playing .tags-container { opacity: 1; pointer-events: auto; transform: translateY(-50%) translateX(0); }
@@ -175,33 +175,47 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
 }
 
 /* ====================================================
-   MOBILE FIXED STACK (Zero Jitter, Full Visibility)
+   MOBILE NATIVE FLEX ARCHITECTURE (Zero Glitches/Vanishing)
    ==================================================== */
 @media (max-width: 768px) {
+    /* Stop using absolute fill screen boxes on mobile to prevent clipping/vanishing */
     .control-section {
-        position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
-        display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+        position: relative;
+        width: 100vw;
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
         background: transparent !important;
-        padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+        padding: 1.5rem 1rem calc(1.5rem + env(safe-area-inset-bottom)) 1.5rem;
+        pointer-events: none;
+    }
+
+    /* Allow interaction explicitly on controls */
+    .layer-controls-section, .player, .overlay-btn {
+        pointer-events: auto;
     }
 
     .layer-controls-section { 
         position: relative; top: auto; right: auto; transform: none; 
-        width: 90%; margin-bottom: 1.5rem; 
+        width: 100%; margin-top: auto; margin-bottom: 1rem;
     }
     body.playing .layer-controls-section { display: none !important; }
 
     .player { 
         position: relative; bottom: auto; left: auto; transform: none; 
-        width: 92%; margin: 0 auto; 
+        width: 100%; margin-top: auto; 
     }
 
+    /* Pure text tags cleanly stacked at top-left */
     .tags-container { 
-        position: absolute; top: 10vh; left: 1.5rem; transform: none; 
+        position: absolute; top: 1.5rem; left: 1.5rem; transform: none; 
         width: auto; align-items: flex-start; text-align: left; 
-        flex-direction: column; gap: 6px; padding: 0;
+        flex-direction: column; gap: 4px; padding: 0;
+        max-height: 20vh; overflow-y: auto; pointer-events: auto;
     }
-    body.playing .tags-container { transform: none; }
+    body.playing .tags-container { transform: none; opacity: 1; }
     
     .overlay-btn { top: 1.5rem; right: 1.5rem; z-index: 50; }
 }
@@ -209,19 +223,19 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
 @media (max-width: 480px) {
     .gateway-content h1 { font-size: 2.8rem; }
     
-    .layer-controls-section { margin-bottom: 1.5rem; }
-    .layer-controls { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-    .layer-select { font-size: 0.65rem; padding: 0.5rem; }
+    .layer-controls-section { margin-bottom: 0.5rem; }
+    .layer-controls { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+    .layer-select { font-size: 0.65rem; padding: 0.4rem; background: rgba(0,0,0,0.6); }
     
-    .player-controls { justify-content: space-between; gap: 1rem; margin-bottom: 1rem; padding: 0 0.5rem; }
-    .control-btn svg { width: 22px; height: 22px; }
-    #icon-play, #icon-pause { width: 40px; height: 40px; }
+    .player-controls { justify-content: space-between; gap: 1rem; margin-bottom: 0.75rem; padding: 0 0.5rem; }
+    .control-btn svg { width: 20px; height: 20px; }
+    #icon-play, #icon-pause { width: 36px; height: 36px; }
     
     .progress-section { width: 100%; padding: 0; }
-    .time-display { margin-bottom: 0.4rem; font-size: 0.65rem; }
+    .time-display { margin-bottom: 0.3rem; font-size: 0.65rem; }
     
     /* Pure text left-aligned tags (Zero Backgrounds) */
-    .tags-container { top: 8vh; left: 1.25rem; gap: 8px; }
+    .tags-container { top: 1.5rem; left: 1.25rem; gap: 4px; }
     .minimal-tag { 
         font-size: 0.6rem; 
         padding: 0 !important; 
