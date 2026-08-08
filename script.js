@@ -30,7 +30,7 @@
 
     let animationFrameId = null;
 
-    // UI Elements (Removed baseImage)
+    // UI Elements
     const UI = {
         gatewayPage: document.getElementById("gateway-page"),
         gatewayBg: document.getElementById("gateway-background"),
@@ -276,7 +276,6 @@
 
     // --- UI Logic & State ---
     function updateVisuals() {
-        // Clear ALL existing layers since baseImage is gone
         UI.artworkDiv.querySelectorAll('.layerImage').forEach(el => el.remove());
         UI.gatewayBg.innerHTML = '';
 
@@ -294,22 +293,14 @@
                 const bgImg = new Image();
                 bgImg.src = url;
                 
-                // Check if this is the String layer (looks for "string" in the ID)
+                // Check if this is the String layer
                 if (layerId.toLowerCase().includes('string')) {
                     bgImg.className = 'bg-layer-cover active';
                 } else {
                     bgImg.className = 'floating-layer active';
                     
-                    // Randomize size and starting position for the floating layers
-                    const size = 30 + Math.random() * 50; 
-                    const top = -10 + Math.random() * 80; 
-                    const left = -10 + Math.random() * 80; 
-                    const delay = Math.random() * -20; 
-                    
-                    bgImg.style.width = `${size}vw`;
-                    bgImg.style.height = `${size}vw`;
-                    bgImg.style.top = `${top}vh`;
-                    bgImg.style.left = `${left}vw`;
+                    // Allow layers to slightly stagger their vertical breathing animation
+                    const delay = Math.random() * -15; 
                     bgImg.style.animationDelay = `${delay}s`;
                 }
                 
