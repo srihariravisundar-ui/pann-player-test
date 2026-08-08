@@ -502,4 +502,10 @@
             } else {
                 Object.values(state.audioNodes).forEach(node => node.currentTime = newTime);
                 if (UI.progressFill) UI.progressFill.style.width = `${percentage * 100}%`;
-          
+                if (UI.currentTimeEl) UI.currentTimeEl.textContent = formatTime(newTime);
+            }
+        });
+    }
+
+    init();
+})();
