@@ -35,7 +35,7 @@
         learnMoreBtn: document.getElementById("learnMoreBtn"),
         moreText: document.getElementById("moreText"),
         playerPage: document.getElementById("player-page"),
-        playerBg: document.getElementById("player-background"), // New reference for full-screen strings
+        playerBg: document.getElementById("player-background"), 
         enterBtn: document.getElementById("enterBtn"),
         controls: document.getElementById("controls"),
         tagsContainer: document.getElementById("active-tags"),
@@ -110,13 +110,10 @@
     }
 
     function toggleEditMode(isEditing) {
-        if (isEditing) {
-            UI.controls.classList.remove("hidden");
-            UI.tagsContainer.classList.add("hidden");
-        } else {
-            UI.controls.classList.add("hidden");
+        // UI visibility is completely managed by the CSS body.playing class now.
+        // We only need to generate the tracklist text tags when playback starts.
+        if (!isEditing) {
             UI.tagsContainer.innerHTML = '';
-            
             UI.controls.querySelectorAll('.layer-select').forEach(select => {
                 const opt = select.options[select.selectedIndex];
                 if (opt) {
@@ -126,7 +123,6 @@
                     UI.tagsContainer.appendChild(tag);
                 }
             });
-            UI.tagsContainer.classList.remove("hidden");
         }
     }
 
@@ -420,6 +416,7 @@
                 }
             });
 
+            // Apply URL state OR randomize
             if (!applyURLState()) {
                 UI.controls.querySelectorAll('.layer-select').forEach(select => {
                     select.selectedIndex = Math.floor(Math.random() * select.options.length);
