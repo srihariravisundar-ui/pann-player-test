@@ -66,7 +66,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
     100% { transform: translate(-50%, -52%) translateZ(0); }
 }
 
-/* --- Player Container (Desktop) --- */
+/* --- Player Container (Desktop Default) --- */
 .container { position: relative; height: 100%; width: 100%; overflow: hidden; display: flex; }
 
 .artwork-section { 
@@ -119,7 +119,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
     text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.6); 
 }
 
-/* Bottom Center: Transport Controls & Scrubber */
+/* Bottom Center: Transport Controls & Scrubber (Desktop) */
 .player { 
     position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); 
     width: 90%; max-width: 500px; pointer-events: auto; 
@@ -156,7 +156,7 @@ body.playing .tags-container { opacity: 1; pointer-events: auto; transform: tran
 body.playing .player-header, body.playing .loading-section { opacity: 0; pointer-events: none; display: none !important; }
 body.playing .player-controls { margin-bottom: 0.5rem; }
 
-/* --- Responsive Scaling (TV, Desktop, Tablet, Mobile) --- */
+/* --- Responsive Scaling (TV, Desktop, Tablet) --- */
 
 @media (min-width: 1920px) {
     .gateway-content h1 { font-size: 7rem; }
@@ -175,42 +175,75 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
 }
 
 /* ====================================================
-   TRUE MOBILE FLEX ARCHITECTURE (No Absolute Glitches)
+   TRUE MOBILE-FIRST FLEX LAYOUT (No Absolute Bugs)
    ==================================================== */
 @media (max-width: 768px) {
     body {
         overflow-y: auto !important;
+        height: 100vh;
+        height: 100dvh;
     }
+    
     .container {
         display: flex !important;
         flex-direction: column !important;
-        height: 100dvh !important;
-        width: 100vw !important;
+        height: 100% !important;
+        width: 100% !important;
         position: relative !important;
-        overflow-y: auto !important;
     }
+
+    /* Artwork stays fixed in the background natively */
     .artwork-section {
         position: fixed !important;
         inset: 0 !important;
         width: 100vw !important;
+        height: 100h !important;
         height: 100dvh !important;
         z-index: 1 !important;
+        pointer-events: none !important;
     }
+
+    /* Control section acts as a normal, scrollable flex container */
     .control-section {
         position: relative !important;
-        width: 100vw !important;
+        width: 100% !important;
         min-height: 100dvh !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: space-between !important;
-        padding: 1.25rem 1rem calc(1.5rem + env(safe-area-inset-bottom)) 1rem !important;
+        padding: 1rem 1rem calc(2rem + env(safe-area-inset-bottom)) 1rem !important;
         z-index: 10 !important;
         background: transparent !important;
-        pointer-events: none !important;
-    }
-    .layer-controls-section, .player, .overlay-btn, .tags-container {
         pointer-events: auto !important;
     }
+
+    /* Top Left Pure Text Tags */
+    .tags-container {
+        position: relative !important;
+        top: auto !important; left: auto !important; transform: none !important;
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 4px !important;
+        padding: 0.5rem 0 0 0 !important;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+    }
+    body.playing .tags-container {
+        opacity: 1 !important;
+    }
+    .minimal-tag {
+        font-size: 0.65rem !important;
+        padding: 0 !important;
+        border: none !important;
+        background: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.8) !important;
+        letter-spacing: 1px !important;
+    }
+
+    /* Edit Mode Dropdowns */
     .layer-controls-section {
         position: relative !important;
         top: auto !important; right: auto !important; transform: none !important;
@@ -221,10 +254,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         border: 1px solid rgba(255,255,255,0.1) !important;
         border-radius: 16px !important;
         padding: 1rem !important;
-        max-height: 42vh;
-        overflow-y: auto;
-        margin-top: auto !important;
-        margin-bottom: 1rem !important;
+        margin: auto 0 !important;
     }
     .layer-controls {
         grid-template-columns: repeat(2, 1fr) !important;
@@ -238,6 +268,8 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
     body.playing .layer-controls-section {
         display: none !important;
     }
+
+    /* Player Dock pinned securely to bottom */
     .player {
         position: relative !important;
         bottom: auto !important; left: auto !important; transform: none !important;
@@ -258,33 +290,8 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
     .control-btn svg { width: 20px; height: 20px; }
     #icon-play, #icon-pause { width: 32px; height: 32px; }
 
-    /* Top Left Pure Text Tags */
-    .tags-container {
-        position: relative !important;
-        top: auto !important; left: auto !important; transform: none !important;
-        width: 100% !important;
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 4px !important;
-        padding: 0 0.5rem !important;
-        margin-bottom: auto !important;
-        opacity: 0;
-        transition: opacity 0.5s ease;
-    }
-    body.playing .tags-container {
-        opacity: 1 !important;
-    }
-    .minimal-tag {
-        font-size: 0.65rem !important;
-        padding: 0 !important;
-        border: none !important;
-        background: transparent !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-        text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.8) !important;
-        letter-spacing: 1px !important;
-    }
     .overlay-btn {
+        position: absolute !important;
         top: 1.25rem !important;
         right: 1.25rem !important;
         z-index: 50 !important;
