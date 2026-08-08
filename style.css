@@ -30,16 +30,15 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 /* --- Gateway Page & Dynamic Background --- */
 #gateway-page { position: relative; display: flex; align-items: center; justify-content: center; text-align: center; padding: 2rem; }
 
-/* Updated background logic to support floating elements */
 .gateway-bg { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; overflow: hidden; z-index: 1; }
-.gateway-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%); z-index: 2; pointer-events: none; }
-.gateway-content { position: relative; z-index: 3; max-width: 700px; display: flex; flex-direction: column; gap: 2.5rem; align-items: center; }
+.gateway-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.98) 100%); z-index: 2; pointer-events: none; }
+.gateway-content { position: relative; z-index: 3; max-width: 800px; display: flex; flex-direction: column; gap: 2.5rem; align-items: center; }
 .gateway-content h1 { font-size: 5rem; letter-spacing: 4px; }
 
 /* Expandable Description */
 .description-container { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0 1rem; }
 .description { font-size: 1rem; color: #cccccc; line-height: 1.8; text-align: center; }
-.text-link-btn { background: none; border: none; color: var(--text-secondary); font-family: 'Inter', sans-serif; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; border-bottom: 1px solid transparent; transition: all 0.3s ease; padding: 5px 0; }
+.text-link-btn { background: none; border: none; color: var(--text-secondary); font-family: 'Inter', sans-serif; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; border-bottom: 1px solid transparent; transition: all 0.3s ease; padding: 5px 0; margin-top: 10px; }
 .text-link-btn:hover { color: var(--text-primary); border-color: var(--text-primary); }
 
 .gateway-btn {
@@ -57,13 +56,22 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 
 /* --- Floating Background Elements & Cover Layer --- */
 .bg-layer-cover { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; opacity: 0.6; z-index: 1; }
-.floating-layer { position: absolute; object-fit: contain; animation: floatCinematic 25s ease-in-out infinite alternate; opacity: 0.3; z-index: 2; pointer-events: none; filter: blur(2px); }
+.floating-layer { 
+    position: absolute; 
+    top: 50%; 
+    left: 50%; 
+    width: 100%; 
+    height: 100%; 
+    object-fit: contain; 
+    opacity: 0.5;
+    z-index: 2; 
+    pointer-events: none; 
+    animation: floatVertical 12s ease-in-out infinite alternate; 
+}
 
-@keyframes floatCinematic {
-    0% { transform: translate(0, 0) scale(1) rotate(0deg); }
-    33% { transform: translate(4vw, -5vh) scale(1.05) rotate(3deg); }
-    66% { transform: translate(-3vw, 4vh) scale(0.95) rotate(-2deg); }
-    100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+@keyframes floatVertical {
+    0% { transform: translate(-50%, -48%); }
+    100% { transform: translate(-50%, -52%); }
 }
 
 /* --- Player Container --- */
@@ -90,7 +98,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .status-dot.error { background: #ff4444; }
 
 /* --- Mobile-Optimized Grid Transport Controls --- */
-.player-controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 2rem; }
+.player-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 2rem; }
 #playPauseBtn { grid-column: 1 / -1; padding: 1rem; font-size: 1rem; font-weight: 600; }
 .control-btn { padding: 0.8rem 0; background: transparent; border: 1px solid var(--border-color); color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; border-radius: 4px; cursor: pointer; transition: all 0.3s ease; }
 .control-btn:hover { border-color: rgba(255, 255, 255, 0.4); }
@@ -120,14 +128,27 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text-primary); color: var(--bg-color); padding: 1rem 2rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; z-index: 100; transition: opacity 0.3s; }
 
-/* --- Mobile --- */
+/* --- Responsive Adaptations --- */
+@media (max-width: 1024px) {
+    .control-section { width: 350px; padding: 2rem 1.5rem; }
+    .gateway-content h1 { font-size: 4rem; }
+    #artwork { width: 65vh; height: 65vh; }
+}
+
 @media (max-width: 768px) {
     .container { flex-direction: column; }
     .artwork-section { height: 45dvh; flex: none; }
     #artwork { width: 85vw; height: 85vw; }
     .control-section { width: 100%; flex: 1; border-left: none; border-top: 1px solid var(--border-color); padding: 1.5rem; }
-    .player-controls { gap: 0.3rem; }
+    
+    .gateway-content h1 { font-size: 3.5rem; letter-spacing: 2px; }
+    .description { font-size: 0.85rem; line-height: 1.6; }
+    .gateway-btn { padding: 0.8rem 2rem; font-size: 0.8rem; }
+}
+
+@media (max-width: 480px) {
     .control-btn { font-size: 0.65rem; padding: 0.8rem 0.2rem; }
-    .gateway-content h1 { font-size: 3rem; }
-    .description { font-size: 0.85rem; }
+    #playPauseBtn { font-size: 0.9rem; padding: 0.8rem; }
+    .gateway-content h1 { font-size: 2.8rem; }
+    .gateway-content { gap: 1.5rem; }
 }
