@@ -77,7 +77,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .artwork-section { 
     position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; 
     display: flex; align-items: center; justify-content: center; z-index: 2; 
-    pointer-events: none; /* Prevents invisible canvas from blocking clicks */
+    pointer-events: none; 
 }
 #artwork { position: relative; width: 100vw; height: 100vh; max-width: none; max-height: none; }
 
@@ -104,7 +104,8 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .layer-label { font-size: 0.7rem; color: var(--text-primary); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
 
 .layer-select { 
-    width: 100%; background: transparent; border: 1px solid rgba(255, 255, 255, 0.3); 
+    width: 100%; background: transparent; 
+    border: 1px solid rgba(255, 255, 255, 0.3); 
     color: var(--text-secondary); padding: 0.5rem; border-radius: 4px;
     font-size: 0.75rem; font-family: 'Inter', sans-serif; cursor: pointer; outline: none; 
     transition: all 0.3s ease; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
@@ -113,7 +114,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .layer-select:hover, .layer-select:focus { border-color: rgba(255, 255, 255, 0.8); }
 .layer-select option { background: #000; color: var(--text-primary); text-shadow: none; }
 
-/* Left Side / Top Mobile: Playing Tags */
+/* Left Side: Playing Tags */
 .tags-container { 
     position: absolute; top: 50%; left: 3rem; transform: translateY(-50%); 
     display: flex; flex-direction: column; gap: 0.8rem; pointer-events: auto; 
@@ -140,7 +141,8 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .control-btn { 
     background: transparent; border: none; color: var(--text-primary); 
     cursor: pointer; transition: transform 0.3s ease, color 0.3s ease; 
-    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.8)); will-change: transform;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.8));
+    will-change: transform;
 }
 .control-btn:hover { transform: scale(1.15); color: #fff; }
 
@@ -148,7 +150,8 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .time-display { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.75rem; }
 .progress-bar { 
     width: 100%; height: 8px; background: rgba(255,255,255,0.25); 
-    cursor: pointer; position: relative; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    cursor: pointer; position: relative; border-radius: 4px; 
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
 .progress-fill { height: 100%; background: var(--text-primary); width: 0%; border-radius: 4px; position: relative; box-shadow: 0 0 10px rgba(255,255,255,0.3); }
 .progress-fill::after { 
@@ -170,8 +173,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
    ==================================================== */
 body.playing .layer-controls-section { opacity: 0; pointer-events: none; transform: translateY(-50%) translateX(20px); }
 body.playing .tags-container { opacity: 1; pointer-events: auto; transform: translateY(-50%) translateX(0); }
-body.playing .player-header,
-body.playing .loading-section { opacity: 0; pointer-events: none; display: none !important; }
+body.playing .player-header, body.playing .loading-section { opacity: 0; pointer-events: none; display: none !important; }
 body.playing .player-controls { margin-bottom: 0.5rem; }
 
 /* --- Responsive Scaling (TV, Desktop, Tablet, Mobile) --- */
@@ -199,22 +201,23 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
     .gateway-content h1 { font-size: 3.5rem; letter-spacing: 2px; }
     .description { font-size: 0.85rem; line-height: 1.6; }
     
+    /* Center the options horizontally in the lower half */
     .layer-controls-section { 
-        top: 4rem; right: 50%; transform: translateX(50%); 
+        top: auto; bottom: 8rem; left: 50%; right: auto; transform: translateX(-50%); 
         width: 90%; 
     }
-    body.playing .layer-controls-section { transform: translateX(50%) translateY(-20px); }
+    body.playing .layer-controls-section { transform: translateX(-50%) translateY(20px); }
 
-    /* Tags span center horizontally in playing mode */
+    /* Move tags to the top safely below standard browser bars */
     .tags-container { 
-        top: 4rem; left: 50%; transform: translateX(-50%); 
-        width: 95%; align-items: center; text-align: center; 
+        top: 10%; left: 50%; transform: translateX(-50%); 
+        width: 95%; align-items: flex-start; align-content: flex-start;
         gap: 0.5rem; flex-direction: row; justify-content: center;
-        flex-wrap: wrap; 
+        flex-wrap: wrap; max-height: 25vh; overflow-y: auto;
     }
     body.playing .tags-container { transform: translateX(-50%) translateY(0); }
     
-    .player { bottom: 3rem; width: 90%; }
+    .player { bottom: 2rem; width: 95%; padding: 0 1rem; }
     .overlay-btn { top: 1.5rem; right: 1.5rem; z-index: 50; }
 }
 
@@ -222,24 +225,34 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
 @media (max-width: 480px) {
     .gateway-content h1 { font-size: 2.8rem; }
     
-    .layer-controls { grid-template-columns: 1fr; }
+    /* Ensure edit dropdowns form a clean grid above the player */
+    .layer-controls-section { bottom: 8.5rem; width: 100%; padding: 0 1.5rem; }
+    .layer-controls { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .layer-select { font-size: 0.7rem; padding: 0.5rem; }
     
-    /* SAFE AREA UX FIX: Push player safely above Android OS navigation bar */
-    .player { width: 92%; bottom: 4.5rem; }
+    /* SAFE AREA UX FIX: Player perfectly centered with breathing room */
+    .player { width: 100%; padding: 0 1.5rem; bottom: 2.5rem; }
     
-    .player-controls { gap: 1.5rem; margin-bottom: 1.5rem; }
-    .control-btn svg { width: 22px; height: 22px; }
-    #icon-play, #icon-pause { width: 36px; height: 36px; }
+    /* Space out transport icons evenly, preventing squishing */
+    .player-controls { width: 100%; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; padding: 0 0.5rem; }
+    .control-btn svg { width: 24px; height: 24px; }
+    #icon-play, #icon-pause { width: 44px; height: 44px; }
     
-    /* Mobile Pill styling for Tags */
-    .tags-container { top: 3rem; gap: 6px; }
+    /* Re-align Progress Bar */
+    .progress-section { width: 100%; }
+    .time-display { margin-bottom: 0.5rem; }
+    
+    /* Mobile Pill styling for Tags (Top of screen) */
+    .tags-container { top: 8%; gap: 8px; padding: 0 1rem; }
     .minimal-tag { 
         font-size: 0.65rem; 
-        padding: 4px 10px; 
+        padding: 6px 12px; 
         border-right: none; 
-        background: rgba(0, 0, 0, 0.45); 
-        border-radius: 12px; 
-        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(0, 0, 0, 0.5); /* High contrast pill backings */
+        border-radius: 16px; 
+        border: 1px solid rgba(255,255,255,0.15);
         text-shadow: none;
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
     }
 }
