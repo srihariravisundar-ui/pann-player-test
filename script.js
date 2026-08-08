@@ -1,30 +1,28 @@
 (async function () {
     const JSON_URL = "https://gateway.pinata.cloud/ipfs/QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq";
     const IPFS_GATEWAYS = ['https://ipfs.io/ipfs/', 'https://cloudflare-ipfs.com/ipfs/', 'https://dweb.link/ipfs/'];
-    const CACHE_NAME = 'pann-stems-v2'; // Bumped cache version to flush old memory
 
-    // Core Engine State
+    // Engine State
     const state = {
-        audioCtx: null,
+        audioNodes: {}, // HTML5 Audio Elements mapped by CID
         selections: { visuals: {}, audio: {} },
-        audioBuffers: {}, 
-        activeSources: {}, 
         isPlaying: false,
-        startTime: 0,
-        pauseTime: 0,
         duration: 0,
-        isFetching: false // Prevents overlapping fetch calls
+        syncInterval: null
     };
 
     let animationFrameId = null;
 
     // UI Elements
     const UI = {
+        gatewayPage: document.getElementById("gateway-page"),
+        playerPage: document.getElementById("player-page"),
+        enterBtn: document.getElementById("enterBtn"),
         controls: document.getElementById("controls"),
         tagsContainer: document.getElementById("active-tags"),
         playBtn: document.getElementById("playBtn"),
         pauseBtn: document.getElementById("pauseBtn"),
-        stopBtn: document.getElementById("stopBtn"),
+        saveBtn: document.getElementById("saveBtn"),
         randomizeBtn: document.getElementById("randomizeBtn"),
         baseImage: document.getElementById("baseImage"),
         artworkDiv: document.getElementById("artwork"),
@@ -36,10 +34,10 @@
         statusIndicator: document.getElementById("connection-indicator"),
         statusText: document.getElementById("loading-info"),
         loadingFill: document.getElementById("loading-fill"),
-        fullscreenBtn: document.getElementById("fullscreenBtn")
+        fullscreenBtn: document.getElementById("fullscreenBtn"),
+        toast: document.getElementById("toast")
     };
 
-    // --- Utilities ---
     function formatTime(seconds) {
         if (!seconds || isNaN(seconds)) return "0:00";
         const m = Math.floor(seconds / 60);
@@ -58,7 +56,6 @@
         return `${IPFS_GATEWAYS[attempt] || IPFS_GATEWAYS[0]}${cid.replace('ipfs://', '')}`;
     }
 
-    // --- Aggressive Metadata Name Extractor ---
     function extractRealName(opt, index) {
         if (!opt) return `Variant ${index + 1}`;
         if (opt.name) return opt.name;
@@ -72,17 +69,14 @@
         if (opt.uri) {
             try {
                 let cleanName = opt.uri.split('/').pop().split('.')[0].replace(/[-_]/g, ' ').trim();
-                if (cleanName && cleanName.length < 30 && !cleanName.startsWith('Qm') && !cleanName.startsWith('bafy')) {
+                if (cleanName && cleanName.length < 30 && !cleanName.startsWith('Qm')) {
                     return cleanName.replace(/\b\w/g, char => char.toUpperCase());
                 }
-            } catch (e) {
-                console.warn("URI parse error:", e);
-            }
+            } catch (e) {}
         }
         return `Blueprint ${index + 1}`;
     }
 
-    // --- Minimalist View Toggle ---
     function toggleEditMode(isEditing) {
         if (isEditing) {
             UI.controls.classList.remove("hidden");
@@ -91,8 +85,7 @@
             UI.controls.classList.add("hidden");
             UI.tagsContainer.innerHTML = '';
             
-            const selects = UI.controls.querySelectorAll('.layer-select');
-            selects.forEach(select => {
+            UI.controls.querySelectorAll('.layer-select').forEach(select => {
                 const opt = select.options[select.selectedIndex];
                 if (opt) {
                     const tag = document.createElement("span");
@@ -105,144 +98,132 @@
         }
     }
 
-    // --- Audio Engine (Web Audio API + Cache) ---
-    async function fetchAudio(cid, attempt = 0) {
-        if (!state.audioCtx) return;
-        const url = toGatewayURL(cid, attempt);
-        const cache = await caches.open(CACHE_NAME);
-        
-        try {
-            let response = await cache.match(url);
-            if (!response) {
-                response = await fetch(url);
-                if (!response.ok) throw new Error("Fetch failed");
-                cache.put(url, response.clone()); 
-            }
-            
-            const arrayBuffer = await response.arrayBuffer();
-            const audioBuffer = await state.audioCtx.decodeAudioData(arrayBuffer);
-            
-            // Map strictly to CID to prevent infinite memory growth
-            state.audioBuffers[cid] = audioBuffer;
-            return audioBuffer;
-        } catch (e) {
-            if (attempt < IPFS_GATEWAYS.length - 1) return fetchAudio(cid, attempt + 1);
-            throw e;
-        }
-    }
-
-    async function initAudioContext() {
-        if (!state.audioCtx) {
-            state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (state.audioCtx.state === 'suspended') await state.audioCtx.resume();
-    }
-
-    async function loadMix() {
-        if (state.isFetching) return;
-        state.isFetching = true;
-
-        setStatus("Loading Blueprint...", "loading");
-        UI.loadingFill.style.width = '0%';
+    // --- HTML5 Streaming Engine (Fixes RAM Crashes & Allows Background Play) ---
+    async function loadAudioStreams() {
+        setStatus("Buffering Streams...", "loading");
         UI.playBtn.disabled = true;
         
-        const promises = [];
-        const activeAudioCIDs = Object.values(state.selections.audio).filter(cid => cid);
-        const totalToLoad = activeAudioCIDs.length;
-        let loadedCount = 0;
+        const activeCIDs = Object.values(state.selections.audio).filter(cid => cid);
         
-        for (const cid of activeAudioCIDs) {
-            if (!state.audioBuffers[cid]) {
-                const p = fetchAudio(cid).then(() => {
-                    loadedCount++;
-                    UI.loadingFill.style.width = `${(loadedCount / totalToLoad) * 100}%`;
-                });
-                promises.push(p);
-            } else {
-                loadedCount++;
-                UI.loadingFill.style.width = `${(loadedCount / totalToLoad) * 100}%`;
-            }
-        }
-
-        try {
-            await Promise.all(promises);
-            
-            state.duration = 0;
-            for (const cid of activeAudioCIDs) {
-                if (state.audioBuffers[cid] && state.audioBuffers[cid].duration > state.duration) {
-                    state.duration = state.audioBuffers[cid].duration;
-                }
-            }
-            
-            UI.totalTimeEl.textContent = formatTime(state.duration);
-            setStatus("Ready", "ready");
-            setTimeout(() => { UI.loadingFill.style.width = '0%'; }, 1000); 
-        } catch (e) {
-            setStatus("Network Error", "error");
-        } finally {
-            UI.playBtn.disabled = false;
-            state.isFetching = false;
-        }
-    }
-
-    function playAudio(offset = 0) {
-        if (state.duration === 0) return;
-        stopAudio(false); 
-
-        Object.entries(state.selections.audio).forEach(([layerId, cid]) => {
-            if (cid && state.audioBuffers[cid]) {
-                const source = state.audioCtx.createBufferSource();
-                source.buffer = state.audioBuffers[cid];
-                source.loop = true;
-                source.connect(state.audioCtx.destination); 
-                source.start(0, offset % state.duration);
-                state.activeSources[layerId] = source;
+        // Stop & cleanup old unused nodes
+        Object.keys(state.audioNodes).forEach(oldCid => {
+            if (!activeCIDs.includes(oldCid)) {
+                state.audioNodes[oldCid].pause();
+                state.audioNodes[oldCid].src = "";
+                delete state.audioNodes[oldCid];
             }
         });
 
-        state.startTime = state.audioCtx.currentTime - offset;
+        // Initialize new nodes
+        let loadedCount = 0;
+        const loadPromises = activeCIDs.map(cid => {
+            return new Promise((resolve) => {
+                if (state.audioNodes[cid]) {
+                    loadedCount++;
+                    resolve(); // Already loaded
+                    return;
+                }
+
+                const audio = new Audio();
+                audio.crossOrigin = "anonymous";
+                audio.loop = true;
+                audio.preload = "auto";
+                
+                audio.addEventListener('canplaythrough', () => {
+                    if (audio.duration > state.duration) state.duration = audio.duration;
+                    loadedCount++;
+                    UI.loadingFill.style.width = `${(loadedCount / activeCIDs.length) * 100}%`;
+                    resolve();
+                }, { once: true });
+
+                audio.addEventListener('error', () => { resolve(); }); // Ignore failure to not block mix
+                
+                audio.src = toGatewayURL(cid);
+                audio.load();
+                state.audioNodes[cid] = audio;
+            });
+        });
+
+        await Promise.all(loadPromises);
+        
+        UI.totalTimeEl.textContent = formatTime(state.duration);
+        UI.loadingFill.style.width = '0%';
+        setStatus("Ready", "ready");
+        UI.playBtn.disabled = false;
+        
+        // Initialize Media Session for Lock Screen / Background playback
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: 'Pann Blueprint',
+                artist: 'Pradeep Kumar & 42 Artists',
+                album: 'Osai Kekkudho'
+            });
+            navigator.mediaSession.setActionHandler('play', () => playAudio());
+            navigator.mediaSession.setActionHandler('pause', () => pauseAudio());
+        }
+    }
+
+    // Master Sync Function: Prevents HTML5 audio from drifting
+    function enforceSync() {
+        const nodes = Object.values(state.audioNodes);
+        if (nodes.length <= 1) return;
+        
+        const masterTime = nodes[0].currentTime;
+        nodes.forEach((node, i) => {
+            if (i === 0) return;
+            // If any track drifts by more than 0.05s, snap it back to master
+            if (Math.abs(node.currentTime - masterTime) > 0.05) {
+                node.currentTime = masterTime;
+            }
+        });
+    }
+
+    function playAudio(targetTime = null) {
+        const nodes = Object.values(state.audioNodes);
+        if (nodes.length === 0) return;
+
+        // Sync times before playing
+        const timeToSet = targetTime !== null ? targetTime : nodes[0].currentTime;
+        nodes.forEach(node => { node.currentTime = timeToSet; });
+
+        nodes.forEach(node => {
+            const playPromise = node.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(e => console.log("Playback interrupted"));
+            }
+        });
+
         state.isPlaying = true;
         toggleEditMode(false);
         setStatus("Playing", "ready");
+        
+        // Start Sync Loop (Fixes HTML5 drift)
+        if (state.syncInterval) clearInterval(state.syncInterval);
+        state.syncInterval = setInterval(enforceSync, 2000); 
+
         requestAnimationFrame(updateLoop);
     }
 
-    function stopAudio(reset = true) {
-        // Explicit Garbage Collection: Stop and disconnect nodes from memory immediately
-        Object.values(state.activeSources).forEach(src => { 
-            try { 
-                src.stop(); 
-                src.disconnect(); 
-            } catch(e){} 
-        });
-        
-        state.activeSources = {};
+    function pauseAudio() {
+        Object.values(state.audioNodes).forEach(node => node.pause());
         state.isPlaying = false;
-        
-        if (reset) {
-            state.pauseTime = 0;
-            state.startTime = 0;
-            cancelAnimationFrame(animationFrameId);
-            UI.progressFill.style.width = '0%';
-            UI.currentTimeEl.textContent = '0:00';
-            toggleEditMode(true);
-            setStatus("Stopped", "ready");
-        } else {
-            state.pauseTime = (state.audioCtx.currentTime - state.startTime) % state.duration;
-            setStatus("Paused", "ready");
-            toggleEditMode(true);
-        }
+        if (state.syncInterval) clearInterval(state.syncInterval);
+        setStatus("Paused", "ready");
+        toggleEditMode(true);
     }
 
     function updateLoop() {
         if (!state.isPlaying) return;
-        const elapsed = (state.audioCtx.currentTime - state.startTime) % state.duration;
-        UI.progressFill.style.width = `${(elapsed / state.duration) * 100}%`;
-        UI.currentTimeEl.textContent = formatTime(elapsed);
+        const nodes = Object.values(state.audioNodes);
+        if (nodes.length > 0) {
+            const current = nodes[0].currentTime;
+            UI.progressFill.style.width = `${(current / state.duration) * 100}%`;
+            UI.currentTimeEl.textContent = formatTime(current);
+        }
         animationFrameId = requestAnimationFrame(updateLoop);
     }
 
-    // --- UI Logic ---
+    // --- UI Logic & State ---
     function updateVisuals() {
         const layers = UI.artworkDiv.querySelectorAll('.layerImage:not(#baseImage)');
         layers.forEach(l => l.remove());
@@ -257,14 +238,52 @@
         });
     }
 
+    function updateURLState() {
+        // Build a concise URL parameter array based on selected indices
+        const indices = [];
+        UI.controls.querySelectorAll('.layer-select').forEach(select => {
+            indices.push(select.selectedIndex);
+        });
+        const stateString = indices.join('-');
+        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?mix=' + stateString;
+        window.history.replaceState({path: newUrl}, '', newUrl);
+    }
+
+    function applyURLState() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const mix = urlParams.get('mix');
+        if (!mix) return false;
+
+        const indices = mix.split('-');
+        const selects = UI.controls.querySelectorAll('.layer-select');
+        
+        if (indices.length === selects.length) {
+            selects.forEach((select, i) => {
+                const targetIndex = parseInt(indices[i]);
+                if (targetIndex >= 0 && targetIndex < select.options.length) {
+                    select.selectedIndex = targetIndex;
+                    const data = JSON.parse(select.value);
+                    const realId = select.dataset.layerId;
+                    state.selections.visuals[realId] = data.visual;
+                    state.selections.audio[realId] = data.audio;
+                }
+            });
+            return true;
+        }
+        return false;
+    }
+
     async function handleChange(id, visualCid, audioCid) {
         state.selections.visuals[id] = visualCid;
         state.selections.audio[id] = audioCid;
         updateVisuals();
+        updateURLState();
 
         if (state.isPlaying) {
-            await loadMix();
-            playAudio(state.pauseTime); 
+            await loadAudioStreams();
+            playAudio(); 
+        } else {
+            await loadAudioStreams(); // Buffer silently
         }
     }
 
@@ -273,9 +292,7 @@
             const res = await fetch(JSON_URL);
             const metadata = await res.json();
             
-            if (metadata.image) {
-                UI.baseImage.src = toGatewayURL(metadata.image);
-            }
+            if (metadata.image) UI.baseImage.src = toGatewayURL(metadata.image);
             
             const visuals = (metadata.layout?.layers || []).slice(0, 10);
             const audios = (metadata["audio-layout"]?.layers || []).slice(0, 10);
@@ -296,8 +313,6 @@
                     
                     const select = document.createElement("select");
                     select.className = "layer-select";
-                    
-                    // CRITICAL FIX: Embed the true architectural ID physically in the dropdown
                     select.dataset.layerId = layerId; 
                     
                     layer.states.options.forEach((opt, idx) => {
@@ -308,68 +323,74 @@
                         select.appendChild(option);
                     });
 
-                    // Randomize on Boot
-                    select.selectedIndex = Math.floor(Math.random() * layer.states.options.length);
-                    const selectedData = JSON.parse(select.value);
-                    state.selections.visuals[layerId] = selectedData.visual;
-                    state.selections.audio[layerId] = selectedData.audio;
+                    div.appendChild(label);
+                    div.appendChild(select);
+                    UI.controls.appendChild(div);
 
                     select.addEventListener("change", (e) => {
                         const data = JSON.parse(e.target.value);
                         handleChange(layerId, data.visual, data.audio);
                     });
-
-                    div.appendChild(label);
-                    div.appendChild(select);
-                    UI.controls.appendChild(div);
                 }
             });
 
+            // Handle Initial Load (URL params OR Randomize)
+            if (!applyURLState()) {
+                UI.controls.querySelectorAll('.layer-select').forEach(select => {
+                    select.selectedIndex = Math.floor(Math.random() * select.options.length);
+                    const data = JSON.parse(select.value);
+                    state.selections.visuals[select.dataset.layerId] = data.visual;
+                    state.selections.audio[select.dataset.layerId] = data.audio;
+                });
+                updateURLState();
+            }
+
             updateVisuals();
             UI.loadingOverlay.style.display = 'none';
+            await loadAudioStreams(); // Pre-buffer
+
         } catch (e) {
             setStatus("Failed to load metadata", "error");
-            console.error("Init Error:", e);
         }
     }
 
-    // --- Events ---
+    // --- Page Transitions & Events ---
+    UI.enterBtn.addEventListener('click', () => {
+        UI.gatewayPage.classList.remove('active');
+        setTimeout(() => {
+            UI.gatewayPage.classList.add('hidden');
+            UI.playerPage.classList.remove('hidden');
+            setTimeout(() => UI.playerPage.classList.add('active'), 50);
+        }, 800);
+    });
+
     UI.playBtn.addEventListener('click', async () => {
-        await initAudioContext();
-        if (!state.isPlaying) {
-            await loadMix();
-            playAudio(state.pauseTime);
-        }
+        if (Object.keys(state.audioNodes).length === 0) await loadAudioStreams();
+        playAudio();
     });
 
-    UI.pauseBtn.addEventListener('click', () => {
-        if (state.isPlaying) stopAudio(false);
-    });
-
-    UI.stopBtn.addEventListener('click', () => {
-        stopAudio(true);
-    });
+    UI.pauseBtn.addEventListener('click', () => pauseAudio());
 
     UI.randomizeBtn.addEventListener('click', async () => {
-        await initAudioContext();
-        
         UI.controls.querySelectorAll('.layer-select').forEach(select => {
             select.selectedIndex = Math.floor(Math.random() * select.options.length);
-            
-            // CRITICAL FIX: Target exactly the right layer based on the hidden data attribute
             const realId = select.dataset.layerId; 
             const data = JSON.parse(select.value);
-            
             state.selections.visuals[realId] = data.visual;
             state.selections.audio[realId] = data.audio;
         });
 
         updateVisuals();
+        updateURLState();
         
-        if (state.isPlaying) {
-            await loadMix();
-            playAudio(state.pauseTime);
-        }
+        await loadAudioStreams();
+        if (state.isPlaying) playAudio();
+    });
+
+    UI.saveBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(window.location.href);
+        UI.toast.classList.remove('hidden');
+        setTimeout(() => UI.toast.classList.add('hidden'), 3000);
     });
 
     UI.progressBar.addEventListener('click', (e) => {
@@ -378,22 +399,19 @@
         const percentage = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
         const newTime = percentage * state.duration;
         
-        if (state.isPlaying) playAudio(newTime);
-        else {
-            state.pauseTime = newTime;
+        if (state.isPlaying) {
+            playAudio(newTime);
+        } else {
+            Object.values(state.audioNodes).forEach(node => node.currentTime = newTime);
             UI.progressFill.style.width = `${percentage * 100}%`;
             UI.currentTimeEl.textContent = formatTime(newTime);
         }
     });
 
     UI.fullscreenBtn.addEventListener('click', () => {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(e => console.error(e));
-        } else {
-            document.exitFullscreen();
-        }
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(e=>{});
+        else document.exitFullscreen();
     });
 
-    // Boot
     init();
 })();
