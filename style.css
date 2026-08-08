@@ -224,7 +224,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         font-size: 0.6rem; 
         padding: 4px 10px; 
         border-right: none; 
-        background: rgba(0, 0, 0, 0.45); 
+        background: rgba(0, 0, 0, 0); 
         border-radius: 8px; 
         border: 1px solid rgba(255,255,255,0.15);
         text-shadow: none;
