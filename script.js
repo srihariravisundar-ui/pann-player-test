@@ -106,7 +106,7 @@
                 }
             } catch (e) {}
         }
-        return `Blueprint ${index + 1}`;
+        return `Layer ${index + 1}`; // Updated fallback
     }
 
     function toggleEditMode(isEditing) {
@@ -178,7 +178,8 @@
         UI.playPauseBtn.disabled = false;
         
         if ('mediaSession' in navigator) {
-            navigator.mediaSession.metadata = new MediaMetadata({ title: 'Pann Blueprint', artist: 'Pradeep Kumar & The Collective' });
+            // Simplified metadata for native device display
+            navigator.mediaSession.metadata = new MediaMetadata({ title: 'Pann', artist: 'Pradeep Kumar & The Collective' });
             navigator.mediaSession.setActionHandler('play', () => playAudio());
             navigator.mediaSession.setActionHandler('pause', () => pauseAudio());
         }
