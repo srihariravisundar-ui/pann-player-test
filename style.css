@@ -7,7 +7,7 @@
     --panel-bg: #0a0a0a;
     --border-color: rgba(255, 255, 255, 0.08);
     --text-primary: #ffffff;
-    --text-secondary: #ffffff;
+    --text-secondary: #ffffff; /* Updated to pure white for better visibility */
 }
 
 body {
@@ -31,11 +31,16 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 #gateway-page { position: relative; display: flex; align-items: center; justify-content: center; text-align: center; padding: 2rem; }
 
 .gateway-bg { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; overflow: hidden; z-index: 1; }
-.gateway-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%); z-index: 2; pointer-events: none; }
+.gateway-overlay { 
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+    /* Updated gradient based on your spec */
+    background: radial-gradient(circle at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%); 
+    z-index: 2; pointer-events: none; 
+}
+
 .gateway-content { position: relative; z-index: 3; max-width: 800px; display: flex; flex-direction: column; gap: 2.5rem; align-items: center; }
 .gateway-content h1 { font-size: 5rem; letter-spacing: 4px; }
 
-/* Expandable Description */
 .description-container { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0 1rem; }
 .description { font-size: 1rem; color: #cccccc; line-height: 1.8; text-align: center; }
 .text-link-btn { background: none; border: none; color: var(--text-secondary); font-family: 'Inter', sans-serif; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; border-bottom: 1px solid transparent; transition: all 0.3s ease; padding: 5px 0; margin-top: 10px; }
@@ -54,21 +59,18 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .center-tags::-webkit-scrollbar { width: 4px; }
 .center-tags::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
 
-/* --- Floating Background Elements & Cover Layer --- */
-.bg-layer-cover { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; opacity: 0.6; z-index: 1; }
+/* --- Floating Background Elements & Cover Layer (Applies to Gateway & Player) --- */
+/* Changed to % so it dynamically fits whatever container it is inside (75vh box or full 100vw screen) */
+.bg-layer-cover { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.6; z-index: 1; }
 .floating-layer { 
     position: absolute; 
-    top: 50%; 
-    left: 50%; 
-    width: 100%; 
-    height: 100%; 
+    top: 50%; left: 50%; 
+    width: 100%; height: 100%; 
     object-fit: contain; 
     opacity: 0.5;
-    z-index: 2; 
-    pointer-events: none; 
+    z-index: 2; pointer-events: none; 
     animation: floatVertical 12s ease-in-out infinite alternate; 
 }
-
 @keyframes floatVertical {
     0% { transform: translate(-50%, -48%); }
     100% { transform: translate(-50%, -52%); }
@@ -76,10 +78,10 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 
 /* --- Player Container --- */
 .container { display: flex; height: 100%; width: 100%; }
-.artwork-section { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; }
-#artwork { position: relative; width: 75vh; height: 75vh; max-width: 90vw; max-height: 90vh; transition: all 1s ease; }
-.layerImage { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; object-fit: contain; transition: opacity 1.2s ease; }
-.artwork-overlay-controls { position: absolute; top: 24px; right: 24px; z-index: 5; }
+.artwork-section { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; z-index: 1; }
+#artwork { position: relative; width: 75vh; height: 75vh; max-width: 90vw; max-height: 90vh; transition: all 1.2s cubic-bezier(0.25, 1, 0.5, 1); }
+
+.artwork-overlay-controls { position: absolute; top: 24px; right: 24px; z-index: 20; }
 .overlay-btn { background: transparent; border: none; color: var(--text-secondary); font-size: 1.2rem; cursor: pointer; transition: color 0.3s ease; }
 .overlay-btn:hover { color: var(--text-primary); }
 
@@ -88,8 +90,12 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 @keyframes spin { 100% { transform: rotate(360deg); } }
 #loading-text { font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 2px; }
 
-/* --- Control Panel --- */
-.control-section { width: 420px; background: var(--panel-bg); border-left: 1px solid var(--border-color); padding: 2.5rem 2rem; display: flex; flex-direction: column; gap: 3rem; overflow-y: auto; }
+/* --- Control Panel (Normal State) --- */
+.control-section { 
+    width: 420px; background: var(--panel-bg); border-left: 1px solid var(--border-color); 
+    padding: 2.5rem 2rem; display: flex; flex-direction: column; gap: 3rem; overflow-y: auto; 
+    transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1); z-index: 10;
+}
 .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
 #track-title { font-size: 1.5rem; }
 .connection-status { display: flex; align-items: center; gap: 6px; }
@@ -97,7 +103,6 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .status-dot.loading { opacity: 0.4; animation: pulse 1s infinite; }
 .status-dot.error { background: #ff4444; }
 
-/* --- Mobile-Optimized Grid Transport Controls --- */
 .player-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 2rem; }
 #playPauseBtn { grid-column: 1 / -1; padding: 1rem; font-size: 1rem; font-weight: 600; }
 .control-btn { padding: 0.8rem 0; background: transparent; border: 1px solid var(--border-color); color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; border-radius: 4px; cursor: pointer; transition: all 0.3s ease; }
@@ -128,6 +133,48 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text-primary); color: var(--bg-color); padding: 1rem 2rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; z-index: 100; transition: opacity 0.3s; }
 
+
+/* ====================================================
+   THE CINEMATIC "PLAYING" STATE
+   ==================================================== */
+body.playing #artwork {
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+}
+
+body.playing .control-section {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 600px;
+    height: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    background: rgba(10, 10, 10, 0.5); /* Glassmorphism transparency */
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    padding: 1.5rem 2rem;
+    gap: 1.5rem;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+}
+
+/* Hide clutter during playback */
+body.playing .player-header,
+body.playing .loading-section,
+body.playing .section-header {
+    display: none !important;
+}
+
+body.playing .player-controls {
+    margin-bottom: 1rem;
+}
+
+
 /* --- Responsive Adaptations --- */
 @media (max-width: 1024px) {
     .control-section { width: 350px; padding: 2rem 1.5rem; }
@@ -144,6 +191,13 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
     .gateway-content h1 { font-size: 3.5rem; letter-spacing: 2px; }
     .description { font-size: 0.85rem; line-height: 1.6; }
     .gateway-btn { padding: 0.8rem 2rem; font-size: 0.8rem; }
+
+    body.playing .control-section {
+        bottom: 1rem;
+        width: 95%;
+        padding: 1rem;
+        border-radius: 16px;
+    }
 }
 
 @media (max-width: 480px) {
