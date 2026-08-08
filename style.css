@@ -155,16 +155,12 @@ body.playing .tags-container { opacity: 1; pointer-events: auto; transform: tran
 body.playing .player-header, body.playing .loading-section { opacity: 0; pointer-events: none; display: none !important; }
 body.playing .player-controls { margin-bottom: 0.5rem; }
 
-/* --- Responsive Scaling (TV, Desktop, Tablet) --- */
-
+/* --- Responsive Scaling --- */
 @media (min-width: 1920px) {
     .gateway-content h1 { font-size: 7rem; }
     .description { font-size: 1.2rem; }
     .layer-controls-section { width: 400px; right: 5rem; }
     .tags-container { left: 5rem; }
-    .layer-select { font-size: 1rem; padding: 0.8rem; }
-    .layer-label { font-size: 0.9rem; }
-    .minimal-tag { font-size: 1rem; }
 }
 
 @media (max-width: 1024px) {
@@ -174,34 +170,37 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
 }
 
 /* ====================================================
-   TRUE MOBILE NATIVE STACK (Clean, Scrollable, Fully Visible)
+   TRUE MOBILE-FIRST FLEX LAYOUT (Fully Transparent & Visible)
    ==================================================== */
 @media (max-width: 768px) {
     body {
         overflow-y: auto !important;
+        height: 100vh;
         height: 100dvh;
+        background: #000;
     }
-    
+
     .container {
         display: flex !important;
         flex-direction: column !important;
-        height: 100dvh !important;
-        width: 100vw !important;
+        height: 100% !important;
+        width: 100% !important;
         position: relative !important;
         overflow-y: auto !important;
     }
 
-    /* Artwork sits fixed as a true background */
+    /* Artwork sits fixed in the background */
     .artwork-section {
         position: fixed !important;
         inset: 0 !important;
         width: 100vw !important;
+        height: 100vh !important;
         height: 100dvh !important;
         z-index: 1 !important;
         pointer-events: none !important;
     }
 
-    /* Control section flows naturally as a scrollable container */
+    /* Control section flows naturally as a scrollable flex container */
     .control-section {
         position: relative !important;
         width: 100vw !important;
@@ -219,55 +218,93 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         pointer-events: auto !important;
     }
 
-    /* Edit mode dropdowns boxed nicely above player */
+    /* Edit mode dropdowns: fully transparent background matching your request */
     .layer-controls-section {
         position: relative !important;
         top: auto !important; right: auto !important; transform: none !important;
         width: 100% !important;
-        background: rgba(10, 10, 10, 0.9) !important;
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
-        border: 1px solid rgba(255,255,255,0.15) !important;
-        border-radius: 16px !important;
-        padding: 1rem !important;
+        background: transparent !important;
+        border: none !important;
+        padding: 1rem 0 !important;
         margin-top: auto !important;
         margin-bottom: 1rem !important;
     }
-    .layer-controls {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 8px !important;
-    }
-    .layer-select {
-        background: rgba(0,0,0,0.8) !important;
-        font-size: 0.7rem !important;
-        padding: 0.4rem !important;
-        border: 1px solid rgba(255,255,255,0.2) !important;
+    
+    .section-header h3 {
         color: #ffffff !important;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.9);
+        font-size: 1.2rem;
+        margin-bottom: 0.75rem;
     }
+
+    .layer-controls {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+    }
+    
+    .layer-control {
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        padding: 0.5rem;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+    }
+
+    .layer-label {
+        font-size: 0.65rem !important;
+        color: #cccccc !important;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+    }
+
+    .layer-select {
+        background: transparent !important;
+        font-size: 0.75rem !important;
+        padding: 0.3rem 0 !important;
+        border: none !important;
+        border-bottom: 1px solid rgba(255,255,255,0.3) !important;
+        color: #ffffff !important;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+    }
+    
     body.playing .layer-controls-section {
         display: none !important;
     }
 
-    /* Player dock pinned securely at the bottom with safe area */
+    /* Player Dock: fully transparent background, perfectly visible */
     .player {
         position: relative !important;
         bottom: auto !important; left: auto !important; transform: none !important;
         width: 100% !important;
-        background: rgba(10, 10, 10, 0.9) !important;
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
-        border: 1px solid rgba(255,255,255,0.15) !important;
-        border-radius: 16px !important;
-        padding: 1rem !important;
+        background: transparent !important;
+        border: none !important;
+        padding: 1rem 0 !important;
         margin-top: auto !important;
     }
-    .player-controls {
-        justify-content: space-between !important;
-        gap: 0.5rem !important;
-        margin-bottom: 0.75rem !important;
+    
+    .player-header {
+        display: none !important; /* Hide redundant header on mobile play/edit to save space */
     }
-    .control-btn svg { width: 22px; height: 22px; }
-    #icon-play, #icon-pause { width: 36px; height: 36px; }
+
+    .player-controls {
+        justify-content: center !important;
+        gap: 2rem !important;
+        margin-bottom: 1rem !important;
+    }
+    .control-btn svg { width: 24px; height: 24px; }
+    #icon-play, #icon-pause { width: 40px; height: 40px; }
+
+    .progress-bar {
+        background: rgba(255, 255, 255, 0.3) !important;
+        height: 6px !important;
+        border-radius: 3px !important;
+    }
+    
+    .progress-fill {
+        background: #ffffff !important;
+        border-radius: 3px !important;
+    }
 
     /* Top Left Pure Text Tags (Zero Background, Fully Visible) */
     .tags-container {
@@ -293,11 +330,16 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
         text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.8) !important;
-        letter-spacing: 1px !important;
+        letter-spacing: 1.5px !important;
     }
+    
     .overlay-btn {
         top: 1.25rem !important;
         right: 1.25rem !important;
         z-index: 50 !important;
+        background: rgba(0,0,0,0.4);
+        padding: 6px;
+        border-radius: 50%;
+        backdrop-filter: blur(4px);
     }
 }
