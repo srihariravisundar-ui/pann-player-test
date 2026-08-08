@@ -8,6 +8,9 @@
 </head>
 <body>
     <div id="gateway-page" class="page-container active">
+        <div id="gateway-background" class="gateway-bg"></div>
+        <div class="gateway-overlay"></div>
+        
         <div class="gateway-content">
             <h1>Pann</h1>
             <p class="description">A living, programmable piece of music representing the five ancient Tamil landscapes. Mix, isolate, and explore the stems to create your own blueprint.</p>
@@ -16,16 +19,7 @@
 
             <div class="artists-section">
                 <p class="artists-title">The Collective</p>
-                <div class="tags-container center-tags">
-                    <span class="minimal-tag">Pradeep Kumar</span>
-                    <span class="minimal-tag">Rithu Vaisakh</span>
-                    <span class="minimal-tag">Praveen Sparsh</span>
-                    <span class="minimal-tag">Mylai Karthikeyan</span>
-                    <span class="minimal-tag">Ghana</span>
-                    <span class="minimal-tag">Vidhya</span>
-                    <span class="minimal-tag">Susha</span>
-                    <span class="minimal-tag">42 Artists</span>
-                </div>
+                <div id="artists-container" class="tags-container center-tags"></div>
             </div>
         </div>
     </div>
@@ -56,8 +50,8 @@
                     </div>
 
                     <div class="player-controls">
-                        <button id="playBtn" class="control-btn primary">Play</button>
-                        <button id="pauseBtn" class="control-btn secondary">Pause</button>
+                        <button id="playPauseBtn" class="control-btn primary">Play</button>
+                        <button id="stopBtn" class="control-btn secondary">Stop</button>
                         <button id="randomizeBtn" class="control-btn secondary">Shuffle</button>
                         <button id="saveBtn" class="control-btn secondary" title="Copy Link to Save Playlist">Save</button>
                     </div>
