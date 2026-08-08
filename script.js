@@ -24,12 +24,13 @@
 
     const state = {
         metadata: null,
-        audioPool: {}, // Safari strict audio track pool
-        visualSlots: {}, // Safari strict visual container pool
+        audioPool: {}, 
+        visualSlots: {}, 
         selections: { visuals: {}, audio: {} },
         isPlaying: false,
         duration: 0,
-        syncInterval: null
+        syncInterval: null,
+        isSeeking: false
     };
 
     let animationFrameId = null;
@@ -125,7 +126,6 @@
         throw new Error("All IPFS gateways failed to load metadata.");
     }
 
-    // --- SAFARI AUDIO POOL ---
     async function loadAudioStreams() {
         UI.loadingOverlay.classList.remove('hidden');
         if (UI.playPauseBtn) UI.playPauseBtn.disabled = true;
@@ -209,6 +209,8 @@
     }
 
     function enforceSync() {
+        if (state.isSeeking) return; // Prevent sync from firing during a seek operation
+
         const nodes = Object.values(state.audioPool).filter(n => !n.paused && n.src);
         if (nodes.length <= 1) return;
         
@@ -222,7 +224,7 @@
             } else if (Math.abs(drift) > 0.03) {
                 node.playbackRate = master.playbackRate - (drift * 0.4); 
             } else {
-                node.playbackRate = master.playbackRate;
+                node.playbackRate = 1.0;
             }
         });
     }
@@ -281,8 +283,72 @@
         cancelAnimationFrame(animationFrameId);
     }
 
+    // --- SEAMLESS IOS SEEK ENGINE ---
+    function seekTo(targetTime) {
+        if (!state.duration || isNaN(targetTime)) return;
+
+        state.isSeeking = true;
+        if (state.syncInterval) clearInterval(state.syncInterval);
+
+        const nodes = Object.values(state.audioPool).filter(n => n.src);
+        if (nodes.length === 0) {
+            state.isSeeking = false;
+            return;
+        }
+
+        // Update progress bar UI instantly
+        const percent = (targetTime / state.duration) * 100;
+        if (UI.progressFill) UI.progressFill.style.width = `${percent}%`;
+        if (UI.currentTimeEl) UI.currentTimeEl.textContent = formatTime(targetTime);
+
+        // Mute temporarily during seek to prevent audio buffer pops on WebKit
+        nodes.forEach(node => {
+            try {
+                node.volume = 0;
+                node.currentTime = targetTime;
+            } catch (e) {
+                console.warn("Seek error:", e);
+            }
+        });
+
+        // Give iOS WebKit 300ms to buffer target range cleanly
+        setTimeout(() => {
+            state.isSeeking = false;
+            enforceSync();
+
+            if (state.isPlaying) {
+                nodes.forEach(node => {
+                    node.playbackRate = 1.0;
+                    node.volume = 1;
+                    const p = node.play();
+                    if (p !== undefined) p.catch(() => {});
+                });
+                state.syncInterval = setInterval(enforceSync, 600);
+            }
+        }, 300);
+    }
+
+    function handleProgressInteraction(e) {
+        if (!state.duration) return;
+        const rect = UI.progressBar.getBoundingClientRect();
+        
+        let clientX = e.clientX;
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+            clientX = e.changedTouches[0].clientX;
+        }
+
+        if (clientX === undefined || clientX === null) return;
+
+        const percentage = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        const targetTime = percentage * state.duration;
+
+        seekTo(targetTime);
+    }
+
     function updateLoop() {
-        if (!state.isPlaying) return;
+        if (!state.isPlaying || state.isSeeking) return;
         const nodes = Object.values(state.audioPool).filter(n => !n.paused && n.src);
         if (nodes.length > 0 && UI.progressFill && UI.currentTimeEl) {
             const current = nodes[0].currentTime;
@@ -292,7 +358,6 @@
         animationFrameId = requestAnimationFrame(updateLoop);
     }
 
-    // --- THE VISUAL SWEEP FIX ---
     function updateVisuals(changedLayerId = null) {
         if (!state.metadata) return;
         const visuals = (state.metadata.layout?.layers || []).slice(0, 10);
@@ -307,7 +372,6 @@
             
             if (!slot) return;
             
-            // THE LOCK: Record exactly which CID this slot is SUPPOSED to show right now.
             slot.dataset.targetCid = cid;
 
             if (!cid) {
@@ -324,20 +388,15 @@
 
             let attempt = 0;
             img.onload = () => {
-                // THE RACE CONDITION FIX: 
-                // If you clicked a different option while this was downloading, discard it!
                 if (slot.dataset.targetCid !== cid) return;
 
-                // Grab ALL existing images in this specific slot (in case of rapid clicking)
                 const oldImages = Array.from(slot.querySelectorAll('img'));
                 
-                // Fade them out and queue for absolute destruction
                 oldImages.forEach(oldImg => {
                     oldImg.classList.remove('layer-visible');
                     setTimeout(() => { if (oldImg.parentNode) oldImg.remove(); }, 1200);
                 });
 
-                // Append the new, correct image
                 slot.appendChild(img);
                 
                 requestAnimationFrame(() => {
@@ -492,20 +551,8 @@
     }
 
     if (UI.progressBar) {
-        UI.progressBar.addEventListener('click', (e) => {
-            if (state.duration === 0) return;
-            const rect = UI.progressBar.getBoundingClientRect();
-            const percentage = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-            const newTime = percentage * state.duration;
-            
-            if (state.isPlaying) {
-                playAudio(newTime);
-            } else {
-                Object.values(state.audioPool).forEach(node => { if(node.src) node.currentTime = newTime; });
-                if (UI.progressFill) UI.progressFill.style.width = `${percentage * 100}%`;
-                if (UI.currentTimeEl) UI.currentTimeEl.textContent = formatTime(newTime);
-            }
-        });
+        UI.progressBar.addEventListener('click', handleProgressInteraction);
+        UI.progressBar.addEventListener('touchstart', handleProgressInteraction, { passive: true });
     }
 
     init();
