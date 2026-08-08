@@ -66,7 +66,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
     100% { transform: translate(-50%, -52%) translateZ(0); }
 }
 
-/* --- Player Container --- */
+/* --- Pure Transparent Player Container --- */
 .container { position: relative; height: 100%; width: 100%; overflow: hidden; display: flex; }
 
 .artwork-section { 
@@ -149,7 +149,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text-primary); color: var(--bg-color); padding: 1rem 2rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; z-index: 100; transition: opacity 0.3s; }
 
 /* ====================================================
-   THE CINEMATIC "PLAYING" STATE (Desktop & General)
+   THE CINEMATIC "PLAYING" STATE (Desktop)
    ==================================================== */
 body.playing .layer-controls-section { opacity: 0; pointer-events: none; transform: translateY(-50%) translateX(20px); }
 body.playing .tags-container { opacity: 1; pointer-events: auto; transform: translateY(-50%) translateX(0); }
@@ -175,75 +175,116 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
 }
 
 /* ====================================================
-   MOBILE NATIVE FLEX ARCHITECTURE (Zero Glitches/Vanishing)
+   ROBUST MOBILE STACK (Zero Vanishing, Zero Jitter)
    ==================================================== */
 @media (max-width: 768px) {
-    /* Stop using absolute fill screen boxes on mobile to prevent clipping/vanishing */
-    .control-section {
-        position: relative;
-        width: 100vw;
+    body {
+        overflow-y: auto;
+    }
+    .container {
+        flex-direction: column;
         height: 100dvh;
+        position: relative;
+    }
+    .artwork-section {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+    }
+    .control-section {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 10;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        align-items: center;
-        background: transparent !important;
-        padding: 1.5rem 1rem calc(1.5rem + env(safe-area-inset-bottom)) 1.5rem;
-        pointer-events: none;
+        padding: 1.25rem;
     }
-
-    /* Allow interaction explicitly on controls */
     .layer-controls-section, .player, .overlay-btn {
         pointer-events: auto;
     }
-
-    .layer-controls-section { 
-        position: relative; top: auto; right: auto; transform: none; 
-        width: 100%; margin-top: auto; margin-bottom: 1rem;
+    .layer-controls-section {
+        position: relative;
+        top: auto; right: auto; transform: none;
+        width: 100%;
+        background: rgba(10, 10, 10, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 16px;
+        padding: 1rem;
+        max-height: 42vh;
+        overflow-y: auto;
+        margin-top: auto;
+        margin-bottom: 1rem;
     }
-    body.playing .layer-controls-section { display: none !important; }
-
-    .player { 
-        position: relative; bottom: auto; left: auto; transform: none; 
-        width: 100%; margin-top: auto; 
+    .layer-controls {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
     }
-
-    /* Pure text tags cleanly stacked at top-left */
-    .tags-container { 
-        position: absolute; top: 1.5rem; left: 1.5rem; transform: none; 
-        width: auto; align-items: flex-start; text-align: left; 
-        flex-direction: column; gap: 4px; padding: 0;
-        max-height: 20vh; overflow-y: auto; pointer-events: auto;
+    .layer-select {
+        background: rgba(0,0,0,0.5);
+        font-size: 0.65rem;
+        padding: 0.4rem;
     }
-    body.playing .tags-container { transform: none; opacity: 1; }
-    
-    .overlay-btn { top: 1.5rem; right: 1.5rem; z-index: 50; }
-}
-
-@media (max-width: 480px) {
-    .gateway-content h1 { font-size: 2.8rem; }
-    
-    .layer-controls-section { margin-bottom: 0.5rem; }
-    .layer-controls { grid-template-columns: repeat(2, 1fr); gap: 6px; }
-    .layer-select { font-size: 0.65rem; padding: 0.4rem; background: rgba(0,0,0,0.6); }
-    
-    .player-controls { justify-content: space-between; gap: 1rem; margin-bottom: 0.75rem; padding: 0 0.5rem; }
+    body.playing .layer-controls-section {
+        display: none !important;
+    }
+    .player {
+        position: relative;
+        bottom: auto; left: auto; transform: none;
+        width: 100%;
+        background: rgba(10, 10, 10, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 16px;
+        padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom)) 1rem;
+        margin-top: auto;
+    }
+    .player-controls {
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
     .control-btn svg { width: 20px; height: 20px; }
-    #icon-play, #icon-pause { width: 36px; height: 36px; }
-    
-    .progress-section { width: 100%; padding: 0; }
-    .time-display { margin-bottom: 0.3rem; font-size: 0.65rem; }
-    
-    /* Pure text left-aligned tags (Zero Backgrounds) */
-    .tags-container { top: 1.5rem; left: 1.25rem; gap: 4px; }
-    .minimal-tag { 
-        font-size: 0.6rem; 
-        padding: 0 !important; 
-        border: none !important; 
-        background: transparent !important; 
+    #icon-play, #icon-pause { width: 32px; height: 32px; }
+
+    /* Top Left Pure Text Tags */
+    .tags-container {
+        position: absolute;
+        top: 1.5rem;
+        left: 1.5rem;
+        transform: none;
+        width: auto;
+        align-items: flex-start;
+        text-align: left;
+        flex-direction: column;
+        gap: 4px;
+        padding: 0;
+        max-height: 25vh;
+        overflow-y: auto;
+        pointer-events: auto;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+    }
+    body.playing .tags-container {
+        opacity: 1;
+    }
+    .minimal-tag {
+        font-size: 0.65rem;
+        padding: 0 !important;
+        border: none !important;
+        background: transparent !important;
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
         text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.8);
         letter-spacing: 1px;
+    }
+    .overlay-btn {
+        top: 1.5rem;
+        right: 1.5rem;
+        z-index: 50;
     }
 }
