@@ -223,7 +223,6 @@
         state.isPlaying = true;
         document.body.classList.add('playing'); 
         
-        // Swap Icon
         UI.iconPlay.classList.add('hidden');
         UI.iconPause.classList.remove('hidden');
 
@@ -241,7 +240,6 @@
         state.isPlaying = false;
         document.body.classList.remove('playing'); 
         
-        // Swap Icon
         UI.iconPlay.classList.remove('hidden');
         UI.iconPause.classList.add('hidden');
 
@@ -283,11 +281,9 @@
 
     // --- VISUAL ENGINE (Clean Crossfade) ---
     function updateVisuals() {
-        // Find existing elements to fade out
         const oldPlayerLayers = UI.layerContainer.querySelectorAll('.layerImage');
         const oldGatewayLayers = UI.gatewayBg.querySelectorAll('.layerImage');
 
-        // Smoothly fade out and remove old layers
         oldPlayerLayers.forEach(el => {
             el.classList.remove('active');
             setTimeout(() => el.remove(), 1200);
@@ -297,7 +293,6 @@
             setTimeout(() => el.remove(), 1200);
         });
 
-        // Generate and fade in new layers
         Object.entries(state.selections.visuals).forEach(([layerId, cid]) => {
             if (cid) {
                 const url = toGatewayURL(cid);
@@ -322,7 +317,6 @@
                 UI.layerContainer.appendChild(imgP);
                 UI.gatewayBg.appendChild(imgG);
 
-                // Trigger reflow and fade in
                 setTimeout(() => {
                     imgP.classList.add('active');
                     imgG.classList.add('active');
@@ -366,7 +360,6 @@
     }
 
     async function handleChange(id, visualCid, audioCid) {
-        // Capture exact timestamp before updating
         let currentTime = 0;
         const nodes = Object.values(state.audioNodes);
         if (nodes.length > 0) currentTime = nodes[0].currentTime;
@@ -378,7 +371,7 @@
 
         if (state.isPlaying) {
             await loadAudioStreams();
-            playAudio(currentTime); // Continues exactly where it left off!
+            playAudio(currentTime); 
         } else {
             await loadAudioStreams(); 
         }
@@ -477,7 +470,6 @@
     UI.stopBtn.addEventListener('click', () => stopAudio());
 
     UI.randomizeBtn.addEventListener('click', async () => {
-        // Capture exact timestamp so the track doesn't skip
         let currentTime = 0;
         const nodes = Object.values(state.audioNodes);
         if (nodes.length > 0) currentTime = nodes[0].currentTime;
