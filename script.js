@@ -35,6 +35,7 @@
         learnMoreBtn: document.getElementById("learnMoreBtn"),
         moreText: document.getElementById("moreText"),
         playerPage: document.getElementById("player-page"),
+        playerBg: document.getElementById("player-background"), // New reference for full-screen strings
         enterBtn: document.getElementById("enterBtn"),
         controls: document.getElementById("controls"),
         tagsContainer: document.getElementById("active-tags"),
@@ -279,48 +280,43 @@
         animationFrameId = requestAnimationFrame(updateLoop);
     }
 
-    // --- VISUAL ENGINE (Clean Crossfade) ---
+    // --- VISUAL ENGINE (Clean Crossfade & String Background Logic) ---
     function updateVisuals() {
+        // Collect existing elements
         const oldPlayerLayers = UI.layerContainer.querySelectorAll('.layerImage');
+        const oldPlayerBgLayers = UI.playerBg.querySelectorAll('.layerImage');
         const oldGatewayLayers = UI.gatewayBg.querySelectorAll('.layerImage');
 
-        oldPlayerLayers.forEach(el => {
-            el.classList.remove('active');
-            setTimeout(() => el.remove(), 1200);
-        });
-        oldGatewayLayers.forEach(el => {
-            el.classList.remove('active');
-            setTimeout(() => el.remove(), 1200);
-        });
+        // Smoothly fade out and delete
+        oldPlayerLayers.forEach(el => { el.classList.remove('active'); setTimeout(() => el.remove(), 1200); });
+        oldPlayerBgLayers.forEach(el => { el.classList.remove('active'); setTimeout(() => el.remove(), 1200); });
+        oldGatewayLayers.forEach(el => { el.classList.remove('active'); setTimeout(() => el.remove(), 1200); });
 
+        // Generate new layers
         Object.entries(state.selections.visuals).forEach(([layerId, cid]) => {
             if (cid) {
                 const url = toGatewayURL(cid);
                 
-                const imgP = new Image();
-                imgP.src = url;
-                
-                const imgG = new Image();
-                imgG.src = url;
-                
                 if (layerId.toLowerCase().includes('string')) {
-                    imgP.className = 'layerImage bg-layer-cover';
-                    imgG.className = 'layerImage bg-layer-cover';
+                    // String layers go to the full-screen background divs
+                    const imgG = new Image(); imgG.src = url; imgG.className = 'layerImage bg-layer-cover';
+                    const imgP = new Image(); imgP.src = url; imgP.className = 'layerImage bg-layer-cover';
+                    UI.gatewayBg.appendChild(imgG);
+                    UI.playerBg.appendChild(imgP);
+                    setTimeout(() => { imgG.classList.add('active'); imgP.classList.add('active'); }, 50);
                 } else {
-                    imgP.className = 'layerImage floating-layer';
-                    imgG.className = 'layerImage floating-layer';
+                    // Other layers go to the floating central containers
+                    const imgG = new Image(); imgG.src = url; imgG.className = 'layerImage floating-layer';
+                    const imgP = new Image(); imgP.src = url; imgP.className = 'layerImage floating-layer';
+                    
                     const delay = Math.random() * -15; 
-                    imgP.style.animationDelay = `${delay}s`;
                     imgG.style.animationDelay = `${delay}s`;
+                    imgP.style.animationDelay = `${delay}s`;
+                    
+                    UI.gatewayBg.appendChild(imgG);
+                    UI.layerContainer.appendChild(imgP);
+                    setTimeout(() => { imgG.classList.add('active'); imgP.classList.add('active'); }, 50);
                 }
-                
-                UI.layerContainer.appendChild(imgP);
-                UI.gatewayBg.appendChild(imgG);
-
-                setTimeout(() => {
-                    imgP.classList.add('active');
-                    imgG.classList.add('active');
-                }, 50);
             }
         });
     }
