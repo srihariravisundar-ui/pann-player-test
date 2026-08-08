@@ -1,6 +1,6 @@
 (async function () {
-    // --- GITHUB CONFIGURATION ---
-    const USE_LOCAL_GITHUB_FILES = false; 
+    // --- CONFIGURATION ---
+    const USE_LOCAL_GITHUB_FILES = true; // Set to true if hosting full package on GitHub
     const GITHUB_BASE_URL = "./"; 
 
     const JSON_URL = "https://gateway.pinata.cloud/ipfs/QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq";
@@ -46,14 +46,10 @@
         saveBtn: document.getElementById("saveBtn"),
         randomizeBtn: document.getElementById("randomizeBtn"),
         layerContainer: document.getElementById("layer-container"),
-        loadingOverlay: document.getElementById("loading-overlay"),
         progressFill: document.getElementById("progress-fill"),
         progressBar: document.getElementById("progressBar"),
         currentTimeEl: document.getElementById("current-time"),
         totalTimeEl: document.getElementById("total-time"),
-        statusIndicator: document.getElementById("connection-indicator"),
-        statusText: document.getElementById("loading-info"),
-        loadingFill: document.getElementById("loading-fill"),
         fullscreenBtn: document.getElementById("fullscreenBtn"),
         toast: document.getElementById("toast")
     };
@@ -74,15 +70,9 @@
         return `${m}:${s.toString().padStart(2, '0')}`;
     }
 
-    function setStatus(msg, type = 'ready') {
-        UI.statusText.textContent = msg;
-        UI.statusIndicator.className = `status-dot ${type}`;
-    }
-
     function toGatewayURL(cid, attempt = 0) {
         if (!cid) return "";
         if (cid.startsWith("http")) return cid;
-        
         const hash = cid.replace('ipfs://', '');
         if (USE_LOCAL_GITHUB_FILES) return `${GITHUB_BASE_URL}${hash}`;
         return `${IPFS_GATEWAYS[attempt] || IPFS_GATEWAYS[0]}${hash}`;
@@ -92,7 +82,6 @@
         if (!opt) return `Variant ${index + 1}`;
         if (opt.name) return opt.name;
         if (opt.value) return opt.value;
-        if (opt.label) return opt.label;
         if (opt.trait_value) return opt.trait_value;
         if (opt.attributes && Array.isArray(opt.attributes)) {
             const valid = opt.attributes.find(attr => attr.value);
@@ -109,25 +98,20 @@
         return `Layer ${index + 1}`;
     }
 
-    function toggleEditMode(isEditing) {
-        if (!isEditing) {
-            UI.tagsContainer.innerHTML = '';
-            UI.controls.querySelectorAll('.layer-select').forEach(select => {
-                const opt = select.options[select.selectedIndex];
-                if (opt) {
-                    const tag = document.createElement("span");
-                    tag.className = "minimal-tag";
-                    tag.textContent = opt.text;
-                    UI.tagsContainer.appendChild(tag);
-                }
-            });
-        }
+    function renderTags() {
+        UI.tagsContainer.innerHTML = '';
+        UI.controls.querySelectorAll('.layer-select').forEach(select => {
+            const opt = select.options[select.selectedIndex];
+            if (opt) {
+                const tag = document.createElement("span");
+                tag.className = "minimal-tag";
+                tag.textContent = opt.text;
+                UI.tagsContainer.appendChild(tag);
+            }
+        });
     }
 
     async function loadAudioStreams() {
-        setStatus("Buffering Streams...", "loading");
-        UI.playPauseBtn.disabled = true;
-        
         const activeCIDs = Object.values(state.selections.audio).filter(cid => cid);
         
         Object.keys(state.audioNodes).forEach(oldCid => {
@@ -138,27 +122,18 @@
             }
         });
 
-        let loadedCount = 0;
         const loadPromises = activeCIDs.map(cid => {
             return new Promise((resolve) => {
-                if (state.audioNodes[cid]) {
-                    loadedCount++;
-                    resolve(); 
-                    return;
-                }
+                if (state.audioNodes[cid]) { resolve(); return; }
 
                 const audio = new Audio();
                 audio.crossOrigin = "anonymous";
                 audio.loop = true;
                 audio.preload = "auto";
                 audio.preservesPitch = false; 
-                audio.mozPreservesPitch = false;
-                audio.webkitPreservesPitch = false;
                 
                 audio.addEventListener('canplaythrough', () => {
                     if (audio.duration > state.duration) state.duration = audio.duration;
-                    loadedCount++;
-                    UI.loadingFill.style.width = `${(loadedCount / activeCIDs.length) * 100}%`;
                     resolve();
                 }, { once: true });
 
@@ -171,11 +146,7 @@
         });
 
         await Promise.all(loadPromises);
-        
         UI.totalTimeEl.textContent = formatTime(state.duration);
-        UI.loadingFill.style.width = '0%';
-        setStatus("Ready", "ready");
-        UI.playPauseBtn.disabled = false;
         
         if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({ title: 'Pann', artist: 'Pradeep Kumar & The Collective' });
@@ -221,12 +192,10 @@
         UI.iconPlay.classList.add('hidden');
         UI.iconPause.classList.remove('hidden');
 
-        toggleEditMode(false);
-        setStatus("Playing", "ready");
+        renderTags();
         
         if (state.syncInterval) clearInterval(state.syncInterval);
         state.syncInterval = setInterval(enforceSync, 500); 
-
         requestAnimationFrame(updateLoop);
     }
 
@@ -234,13 +203,9 @@
         Object.values(state.audioNodes).forEach(node => node.pause());
         state.isPlaying = false;
         document.body.classList.remove('playing'); 
-        
         UI.iconPlay.classList.remove('hidden');
         UI.iconPause.classList.add('hidden');
-
         if (state.syncInterval) clearInterval(state.syncInterval);
-        setStatus("Paused", "ready");
-        toggleEditMode(true);
     }
 
     function stopAudio() {
@@ -251,7 +216,6 @@
         });
         state.isPlaying = false;
         document.body.classList.remove('playing'); 
-        
         UI.iconPlay.classList.remove('hidden');
         UI.iconPause.classList.add('hidden');
 
@@ -259,8 +223,6 @@
         UI.currentTimeEl.textContent = '0:00';
         if (state.syncInterval) clearInterval(state.syncInterval);
         cancelAnimationFrame(animationFrameId);
-        setStatus("Stopped", "ready");
-        toggleEditMode(true);
     }
 
     function updateLoop() {
@@ -352,6 +314,7 @@
         state.selections.audio[id] = audioCid;
         updateVisuals();
         updateURLState();
+        renderTags(); // Update tags immediately on change
 
         if (state.isPlaying) {
             await loadAudioStreams();
@@ -418,12 +381,14 @@
                 updateURLState();
             }
 
+            renderTags();
             updateVisuals();
-            UI.loadingOverlay.style.display = 'none';
+            const loadingOverlay = document.getElementById("loading-overlay");
+            if(loadingOverlay) loadingOverlay.style.display = 'none';
             await loadAudioStreams(); 
 
         } catch (e) {
-            setStatus("Failed to load metadata", "error");
+            console.error("Failed to load metadata", e);
         }
     }
 
@@ -438,8 +403,9 @@
         setTimeout(() => {
             UI.gatewayPage.classList.add('hidden');
             UI.playerPage.classList.remove('hidden');
+            // Slight delay ensures browser paints block before fading in
             setTimeout(() => UI.playerPage.classList.add('active'), 50);
-        }, 800);
+        }, 600);
     });
 
     UI.playPauseBtn.addEventListener('click', async () => {
@@ -468,6 +434,7 @@
 
         updateVisuals();
         updateURLState();
+        renderTags();
         
         await loadAudioStreams();
         if (state.isPlaying) playAudio(currentTime);
