@@ -63,15 +63,12 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 /* --- Pure Transparent Player Container --- */
 .container { position: relative; height: 100%; width: 100%; overflow: hidden; }
 
-/* Artwork is perfectly centered at all times. Jitter-free. */
+/* Artwork is perfectly centered at all times */
 .artwork-section { 
     position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; 
     display: flex; align-items: center; justify-content: center; z-index: 2; 
 }
-#artwork { 
-    position: relative; width: 75vh; height: 75vh; max-width: 90vw; max-height: 90vh; 
-    /* Removed layout transitions (width/height) to eliminate flickering */
-}
+#artwork { position: relative; width: 75vh; height: 75vh; max-width: 90vw; max-height: 90vh; }
 
 #loading-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 1rem; z-index: 10; }
 .loading-spinner { width: 24px; height: 24px; border: 1px solid rgba(255,255,255,0.2); border-top: 1px solid var(--text-primary); border-radius: 50%; animation: spin 1s linear infinite; }
@@ -88,7 +85,6 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
     position: absolute; top: 50%; right: 3rem; transform: translateY(-50%); 
     width: 320px; pointer-events: auto; 
     transition: opacity 0.8s ease, transform 0.8s ease; 
-    will-change: opacity, transform;
 }
 .section-header h3 { font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-secondary); }
 .layer-controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem 0.75rem; }
@@ -111,7 +107,6 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
     position: absolute; top: 50%; left: 3rem; transform: translateY(-50%); 
     display: flex; flex-direction: column; gap: 0.8rem; pointer-events: auto; 
     opacity: 0; transition: opacity 0.8s ease, transform 0.8s ease; 
-    will-change: opacity, transform;
 }
 .minimal-tag { 
     color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; 
@@ -132,12 +127,12 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .player-controls { display: flex; justify-content: center; align-items: center; gap: 2rem; margin-bottom: 1.5rem; width: 100%; }
 .control-btn { 
     background: transparent; border: none; color: var(--text-primary); 
-    cursor: pointer; transition: transform 0.3s ease, color 0.3s ease; 
+    cursor: pointer; transition: all 0.3s ease; 
     filter: drop-shadow(0 4px 10px rgba(0,0,0,0.8));
-    will-change: transform;
 }
 .control-btn:hover { transform: scale(1.15); color: #fff; }
 
+/* Thick, prominent progress bar */
 .progress-section { width: 100%; }
 .time-display { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.75rem; }
 .progress-bar { 
@@ -163,10 +158,10 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 /* ====================================================
    THE CINEMATIC "PLAYING" STATE
    ==================================================== */
-/* Fade out the right side dropdowns cleanly via opacity */
+/* Fade out the right side dropdowns cleanly */
 body.playing .layer-controls-section { opacity: 0; pointer-events: none; transform: translateY(-50%) translateX(20px); }
 
-/* Fade in the left side minimalist tags cleanly via opacity */
+/* Fade in the left side minimalist tags cleanly */
 body.playing .tags-container { opacity: 1; pointer-events: auto; transform: translateY(-50%) translateX(0); }
 
 /* Hide redundant UI elements */
@@ -175,7 +170,21 @@ body.playing .loading-section { opacity: 0; pointer-events: none; display: none 
 
 body.playing .player-controls { margin-bottom: 0.5rem; }
 
-/* --- Responsive Adaptations --- */
+/* --- Responsive Scaling (TV, Desktop, Tablet, Mobile) --- */
+
+/* 4K TV & Massive Monitors */
+@media (min-width: 1920px) {
+    .gateway-content h1 { font-size: 7rem; }
+    .description { font-size: 1.2rem; }
+    .layer-controls-section { width: 400px; right: 5rem; }
+    .tags-container { left: 5rem; }
+    .layer-select { font-size: 1rem; padding: 0.8rem; }
+    .layer-label { font-size: 0.9rem; }
+    .minimal-tag { font-size: 1rem; }
+    #artwork { width: 85vh; height: 85vh; }
+}
+
+/* Standard Laptops & Small Desktops */
 @media (max-width: 1024px) {
     .layer-controls-section { right: 2rem; width: 280px; }
     .tags-container { left: 2rem; }
@@ -183,23 +192,45 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
     #artwork { width: 65vh; height: 65vh; }
 }
 
+/* Tablets (Portrait & Landscape) */
 @media (max-width: 768px) {
     .container { flex-direction: column; }
     #artwork { width: 85vw; height: 85vw; }
     .gateway-content h1 { font-size: 3.5rem; letter-spacing: 2px; }
     .description { font-size: 0.85rem; line-height: 1.6; }
     
+    /* Move selectors above the player safely out of the way */
     .layer-controls-section { 
-        top: 2rem; right: 50%; transform: translateX(50%); 
+        top: 3rem; right: 50%; transform: translateX(50%); 
         width: 90%; 
     }
     body.playing .layer-controls-section { transform: translateX(50%) translateY(-20px); }
 
+    /* Tags stack neatly near top center when playing */
     .tags-container { 
-        top: 2rem; left: 50%; transform: translateX(-50%); 
+        top: 3rem; left: 50%; transform: translateX(-50%); 
         width: 90%; align-items: center; text-align: center; 
+        gap: 0.5rem; flex-direction: row; justify-content: center;
     }
     body.playing .tags-container { transform: translateX(-50%) translateY(0); }
     
-    .player { bottom: 1.5rem; }
+    .player { bottom: 2.5rem; }
+    .overlay-btn { top: 1rem; right: 1rem; }
+}
+
+/* Mobile Phones */
+@media (max-width: 480px) {
+    .gateway-content h1 { font-size: 2.8rem; }
+    #artwork { width: 95vw; height: 95vw; }
+    .player { width: 95%; bottom: 1.5rem; }
+    
+    /* Make the dropdowns a 1-column list on tiny screens to remain readable */
+    .layer-controls { grid-template-columns: 1fr; }
+    
+    .control-btn svg { width: 20px; height: 20px; }
+    #icon-play, #icon-pause { width: 32px; height: 32px; }
+    .player-controls { gap: 1.5rem; }
+    
+    .tags-container { top: 2rem; }
+    .minimal-tag { font-size: 0.6rem; }
 }
