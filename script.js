@@ -1,14 +1,16 @@
 (async function () {
-    // FIXED: Must be false to fetch images from IPFS, stopping the broken black boxes.
+    // ENSURE IT PULLS FROM IPFS
     const USE_LOCAL_GITHUB_FILES = false; 
     const GITHUB_BASE_URL = "./"; 
 
     const JSON_URL = "QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq";
+    
+    // The Gateway Cascader: Dweb & Cloudflare prioritize speed and rarely rate-limit.
     const IPFS_GATEWAYS = [
-        'https://ipfs.io/ipfs/', 
-        'https://gateway.pinata.cloud/ipfs/',
+        'https://dweb.link/ipfs/',
         'https://cloudflare-ipfs.com/ipfs/', 
-        'https://dweb.link/ipfs/'
+        'https://ipfs.io/ipfs/', 
+        'https://gateway.pinata.cloud/ipfs/'
     ];
 
     const ARTISTS_LIST = [
@@ -33,7 +35,6 @@
 
     let animationFrameId = null;
 
-    // UI Mapping to the new HTML structure
     const UI = {
         gatewayPage: document.getElementById("gateway-page"),
         gatewayStringBg: document.getElementById("gateway-string-bg"),
@@ -78,20 +79,21 @@
         return `${m}:${s.toString().padStart(2, '0')}`;
     }
 
-    function toGatewayURL(cid, attempt = 0) {
-        if (!cid) return "";
-        if (cid.startsWith("http")) return cid;
+    // THE FIX: Returns an array of ALL gateways so if one fails, it instantly tries the next
+    function getUrls(cid) {
+        if (!cid) return [];
+        if (cid.startsWith("http")) return [cid];
         const hash = cid.replace('ipfs://', '');
-        if (USE_LOCAL_GITHUB_FILES) return `${GITHUB_BASE_URL}${hash}`;
-        return `${IPFS_GATEWAYS[attempt] || IPFS_GATEWAYS[0]}${hash}`;
+        if (USE_LOCAL_GITHUB_FILES) return [`${GITHUB_BASE_URL}${hash}`];
+        return IPFS_GATEWAYS.map(gw => `${gw}${hash}`);
     }
 
-    // FIXED: Bulletproof Name Extractor ensures "Option 1" never appears if JSON has names
+    // THE FIX: Bulletproof name extraction
     function extractRealName(opt, index) {
-        if (!opt) return `Layer ${index + 1}`;
-        if (opt.value) return opt.value;
-        if (opt.name) return opt.name;
+        if (!opt) return `Option ${index + 1}`;
         if (opt.label) return opt.label;
+        if (opt.name) return opt.name;
+        if (opt.value) return opt.value;
         if (opt.trait_value) return opt.trait_value;
         if (opt.attributes && Array.isArray(opt.attributes)) {
             const valid = opt.attributes.find(attr => attr.value);
@@ -148,20 +150,34 @@
             return new Promise((resolve) => {
                 if (state.audioNodes[cid]) { resolve(); return; }
 
+                const urls = getUrls(cid);
+                if (urls.length === 0) { resolve(); return; }
+
                 const audio = new Audio();
                 audio.crossOrigin = "anonymous";
                 audio.loop = true;
                 audio.preload = "auto";
                 audio.preservesPitch = false; 
                 
+                let attempt = 0;
+
                 audio.addEventListener('canplaythrough', () => {
                     if (audio.duration > state.duration) state.duration = audio.duration;
                     resolve();
                 }, { once: true });
 
-                audio.addEventListener('error', () => { resolve(); }); 
+                // THE FIX: If an audio file fails (Rate Limit), seamlessly try the next Gateway
+                audio.addEventListener('error', () => { 
+                    attempt++;
+                    if (attempt < urls.length) {
+                        audio.src = urls[attempt];
+                        audio.load();
+                    } else {
+                        resolve(); 
+                    }
+                }); 
                 
-                audio.src = toGatewayURL(cid);
+                audio.src = urls[attempt];
                 audio.load();
                 state.audioNodes[cid] = audio;
             });
@@ -259,7 +275,6 @@
     }
 
     function updateVisuals() {
-        // Clear old elements from all containers gracefully
         const oldGStrings = UI.gatewayStringBg.querySelectorAll('.bg-layer-cover');
         const oldPStrings = UI.playerStringBg.querySelectorAll('.bg-layer-cover');
         const oldGLayers = UI.gatewayLayerContainer.querySelectorAll('.layerImage');
@@ -271,24 +286,38 @@
         oldPLayers.forEach(el => { el.classList.remove('active'); setTimeout(() => el.remove(), 1200); });
 
         Object.entries(state.selections.visuals).forEach(([layerId, cid]) => {
-            if (cid) {
-                const url = toGatewayURL(cid);
-                
-                // Distribute full-screen backgrounds vs inner floating images
-                if (layerId.toLowerCase().includes('string')) {
-                    const imgG = new Image(); imgG.src = url; imgG.className = 'bg-layer-cover';
-                    const imgP = new Image(); imgP.src = url; imgP.className = 'bg-layer-cover';
-                    UI.gatewayStringBg.appendChild(imgG);
-                    UI.playerStringBg.appendChild(imgP);
-                    setTimeout(() => { imgG.classList.add('active'); imgP.classList.add('active'); }, 50);
-                } else {
-                    const imgG = new Image(); imgG.src = url; imgG.className = 'layerImage';
-                    const imgP = new Image(); imgP.src = url; imgP.className = 'layerImage';
-                    UI.gatewayLayerContainer.appendChild(imgG);
-                    UI.playerLayerContainer.appendChild(imgP);
-                    setTimeout(() => { imgG.classList.add('active'); imgP.classList.add('active'); }, 50);
-                }
+            if (!cid) return;
+            const urls = getUrls(cid);
+            if (urls.length === 0) return;
+
+            const isString = layerId.toLowerCase().includes('string');
+            const imgG = new Image();
+            const imgP = new Image();
+            
+            imgG.className = isString ? 'bg-layer-cover' : 'layerImage';
+            imgP.className = isString ? 'bg-layer-cover' : 'layerImage';
+
+            let attempt = 0;
+            const loadNext = () => {
+                if(attempt >= urls.length) return;
+                imgG.src = urls[attempt];
+                imgP.src = urls[attempt];
+            };
+
+            // THE FIX: If an image is blocked by IPFS rate-limits (HTTP 429), instantly fallback to prevent Black Boxes
+            imgG.onerror = () => { attempt++; loadNext(); };
+
+            loadNext();
+
+            if (isString) {
+                UI.gatewayStringBg.appendChild(imgG);
+                UI.playerStringBg.appendChild(imgP);
+            } else {
+                UI.gatewayLayerContainer.appendChild(imgG);
+                UI.playerLayerContainer.appendChild(imgP);
             }
+
+            setTimeout(() => { imgG.classList.add('active'); imgP.classList.add('active'); }, 50);
         });
     }
 
