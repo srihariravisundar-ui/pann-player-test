@@ -6,7 +6,6 @@
     const JSON_URL = "https://gateway.pinata.cloud/ipfs/QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq";
     const IPFS_GATEWAYS = ['https://ipfs.io/ipfs/', 'https://cloudflare-ipfs.com/ipfs/', 'https://dweb.link/ipfs/'];
 
-    // --- ARTISTS LIST ---
     const ARTISTS_LIST = [
         "Pradeep Kumar", "Anthony Daasan", "Kalyani Nair", "Susha", "Ghana NB",
         "Vidhya Vijay", "Sujith Sreedhar", "Rakesh", "Manoj Y D", "Pravekha",
@@ -19,7 +18,6 @@
         "Jhanu", "Metapurse"
     ];
 
-    // Engine State
     const state = {
         audioNodes: {}, 
         selections: { visuals: {}, audio: {} },
@@ -30,7 +28,6 @@
 
     let animationFrameId = null;
 
-    // UI Elements
     const UI = {
         gatewayPage: document.getElementById("gateway-page"),
         gatewayBg: document.getElementById("gateway-background"),
@@ -42,10 +39,12 @@
         controls: document.getElementById("controls"),
         tagsContainer: document.getElementById("active-tags"),
         playPauseBtn: document.getElementById("playPauseBtn"),
+        iconPlay: document.getElementById("icon-play"),
+        iconPause: document.getElementById("icon-pause"),
         stopBtn: document.getElementById("stopBtn"),
         saveBtn: document.getElementById("saveBtn"),
         randomizeBtn: document.getElementById("randomizeBtn"),
-        artworkDiv: document.getElementById("artwork"),
+        layerContainer: document.getElementById("layer-container"),
         loadingOverlay: document.getElementById("loading-overlay"),
         progressFill: document.getElementById("progress-fill"),
         progressBar: document.getElementById("progressBar"),
@@ -130,7 +129,6 @@
         }
     }
 
-    // --- HTML5 Streaming Engine ---
     async function loadAudioStreams() {
         setStatus("Buffering Streams...", "loading");
         UI.playPauseBtn.disabled = true;
@@ -158,7 +156,6 @@
                 audio.crossOrigin = "anonymous";
                 audio.loop = true;
                 audio.preload = "auto";
-                
                 audio.preservesPitch = false; 
                 audio.mozPreservesPitch = false;
                 audio.webkitPreservesPitch = false;
@@ -186,10 +183,7 @@
         UI.playPauseBtn.disabled = false;
         
         if ('mediaSession' in navigator) {
-            navigator.mediaSession.metadata = new MediaMetadata({
-                title: 'Pann Blueprint',
-                artist: 'Pradeep Kumar & The Collective',
-            });
+            navigator.mediaSession.metadata = new MediaMetadata({ title: 'Pann Blueprint', artist: 'Pradeep Kumar & The Collective' });
             navigator.mediaSession.setActionHandler('play', () => playAudio());
             navigator.mediaSession.setActionHandler('pause', () => pauseAudio());
         }
@@ -227,8 +221,12 @@
         });
 
         state.isPlaying = true;
-        document.body.classList.add('playing'); // Triggers cinematic full screen!
-        UI.playPauseBtn.textContent = "Pause";
+        document.body.classList.add('playing'); 
+        
+        // Swap Icon
+        UI.iconPlay.classList.add('hidden');
+        UI.iconPause.classList.remove('hidden');
+
         toggleEditMode(false);
         setStatus("Playing", "ready");
         
@@ -241,8 +239,12 @@
     function pauseAudio() {
         Object.values(state.audioNodes).forEach(node => node.pause());
         state.isPlaying = false;
-        document.body.classList.remove('playing'); // Reverts to edit mode shape
-        UI.playPauseBtn.textContent = "Play";
+        document.body.classList.remove('playing'); 
+        
+        // Swap Icon
+        UI.iconPlay.classList.remove('hidden');
+        UI.iconPause.classList.add('hidden');
+
         if (state.syncInterval) clearInterval(state.syncInterval);
         setStatus("Paused", "ready");
         toggleEditMode(true);
@@ -255,8 +257,11 @@
             node.playbackRate = 1.0;
         });
         state.isPlaying = false;
-        document.body.classList.remove('playing'); // Reverts to edit mode shape
-        UI.playPauseBtn.textContent = "Play";
+        document.body.classList.remove('playing'); 
+        
+        UI.iconPlay.classList.remove('hidden');
+        UI.iconPause.classList.add('hidden');
+
         UI.progressFill.style.width = '0%';
         UI.currentTimeEl.textContent = '0:00';
         if (state.syncInterval) clearInterval(state.syncInterval);
@@ -276,36 +281,52 @@
         animationFrameId = requestAnimationFrame(updateLoop);
     }
 
-    // --- VISUAL ENGINE UPDATE (Applies Floating Logic to the inner Player too!) ---
+    // --- VISUAL ENGINE (Clean Crossfade) ---
     function updateVisuals() {
-        UI.artworkDiv.querySelectorAll('.layerImage').forEach(el => el.remove());
-        UI.gatewayBg.innerHTML = '';
+        // Find existing elements to fade out
+        const oldPlayerLayers = UI.layerContainer.querySelectorAll('.layerImage');
+        const oldGatewayLayers = UI.gatewayBg.querySelectorAll('.layerImage');
 
+        // Smoothly fade out and remove old layers
+        oldPlayerLayers.forEach(el => {
+            el.classList.remove('active');
+            setTimeout(() => el.remove(), 1200);
+        });
+        oldGatewayLayers.forEach(el => {
+            el.classList.remove('active');
+            setTimeout(() => el.remove(), 1200);
+        });
+
+        // Generate and fade in new layers
         Object.entries(state.selections.visuals).forEach(([layerId, cid]) => {
             if (cid) {
                 const url = toGatewayURL(cid);
                 
-                const imgPlayer = new Image();
-                const imgGateway = new Image();
-                imgPlayer.src = url;
-                imgGateway.src = url;
+                const imgP = new Image();
+                imgP.src = url;
                 
-                // If it's a string, it becomes the full background cover in both modes!
+                const imgG = new Image();
+                imgG.src = url;
+                
                 if (layerId.toLowerCase().includes('string')) {
-                    imgPlayer.className = 'bg-layer-cover active';
-                    imgGateway.className = 'bg-layer-cover active';
+                    imgP.className = 'layerImage bg-layer-cover';
+                    imgG.className = 'layerImage bg-layer-cover';
                 } else {
-                    // Otherwise, it breathes in the center
-                    imgPlayer.className = 'floating-layer active';
-                    imgGateway.className = 'floating-layer active';
-                    
+                    imgP.className = 'layerImage floating-layer';
+                    imgG.className = 'layerImage floating-layer';
                     const delay = Math.random() * -15; 
-                    imgPlayer.style.animationDelay = `${delay}s`;
-                    imgGateway.style.animationDelay = `${delay}s`;
+                    imgP.style.animationDelay = `${delay}s`;
+                    imgG.style.animationDelay = `${delay}s`;
                 }
                 
-                UI.artworkDiv.appendChild(imgPlayer);
-                UI.gatewayBg.appendChild(imgGateway);
+                UI.layerContainer.appendChild(imgP);
+                UI.gatewayBg.appendChild(imgG);
+
+                // Trigger reflow and fade in
+                setTimeout(() => {
+                    imgP.classList.add('active');
+                    imgG.classList.add('active');
+                }, 50);
             }
         });
     }
@@ -345,6 +366,11 @@
     }
 
     async function handleChange(id, visualCid, audioCid) {
+        // Capture exact timestamp before updating
+        let currentTime = 0;
+        const nodes = Object.values(state.audioNodes);
+        if (nodes.length > 0) currentTime = nodes[0].currentTime;
+
         state.selections.visuals[id] = visualCid;
         state.selections.audio[id] = audioCid;
         updateVisuals();
@@ -352,7 +378,7 @@
 
         if (state.isPlaying) {
             await loadAudioStreams();
-            playAudio(); 
+            playAudio(currentTime); // Continues exactly where it left off!
         } else {
             await loadAudioStreams(); 
         }
@@ -427,11 +453,7 @@
     // --- Events ---
     UI.learnMoreBtn.addEventListener('click', () => {
         UI.moreText.classList.toggle('hidden');
-        if (UI.moreText.classList.contains('hidden')) {
-            UI.learnMoreBtn.textContent = "Learn more";
-        } else {
-            UI.learnMoreBtn.textContent = "Show less";
-        }
+        UI.learnMoreBtn.textContent = UI.moreText.classList.contains('hidden') ? "Learn more" : "Show less";
     });
 
     UI.enterBtn.addEventListener('click', () => {
@@ -455,6 +477,11 @@
     UI.stopBtn.addEventListener('click', () => stopAudio());
 
     UI.randomizeBtn.addEventListener('click', async () => {
+        // Capture exact timestamp so the track doesn't skip
+        let currentTime = 0;
+        const nodes = Object.values(state.audioNodes);
+        if (nodes.length > 0) currentTime = nodes[0].currentTime;
+
         UI.controls.querySelectorAll('.layer-select').forEach(select => {
             select.selectedIndex = Math.floor(Math.random() * select.options.length);
             const realId = select.dataset.layerId; 
@@ -467,7 +494,7 @@
         updateURLState();
         
         await loadAudioStreams();
-        if (state.isPlaying) playAudio();
+        if (state.isPlaying) playAudio(currentTime);
     });
 
     UI.saveBtn.addEventListener('click', () => {
