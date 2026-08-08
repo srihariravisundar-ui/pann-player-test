@@ -52,8 +52,8 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 /* Gateway Independent Tags */
 .gateway-tags { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-height: 30vh; overflow-y: auto; padding-bottom: 1rem; }
 .gateway-tags::-webkit-scrollbar { width: 4px; }
-.gateway-tags::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
-.gateway-tags .minimal-tag { color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding-right: 8px; border-right: 1px solid var(--border-color); text-shadow: 0 2px 8px rgba(0,0,0,0.9); opacity: 0.9; }
+.gateway-tags::-webkit-scrollbar-thumb { background: rgba(255,255,255,0); border-radius: 2px; }
+.gateway-tags .minimal-tag { color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding-right: 8px; border-right: 1px solid var(--border-color); text-shadow: 0 2px 8px rgba(0,0,0,0); opacity: 0.9; }
 .gateway-tags .minimal-tag:last-child { border-right: none; }
 
 /* --- Fully Opaque Cinematic Artwork Layers --- */
@@ -120,7 +120,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 }
 .minimal-tag { 
     color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; 
-    letter-spacing: 2px; text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.6); opacity: 0.9;
+    letter-spacing: 2px; text-shadow: 0 2px 8px rgba(0,0,0,0), 0 0 15px rgba(0,0,0,0); opacity: 0.9;
 }
 
 /* Bottom Center: Transport Controls & Scrubber */
@@ -247,7 +247,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         background: transparent !important; 
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
-        text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.8);
+        text-shadow: 0 2px 8px rgba(0,0,0,0), 0 0 15px rgba(0,0,0,0);
         letter-spacing: 1.5px;
     }
 }
