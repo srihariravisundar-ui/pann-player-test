@@ -2,7 +2,6 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-/* HARD LOCK: Prevents all Android Chrome Viewport Glitches */
 html, body {
     margin: 0; padding: 0;
     width: 100vw; height: 100vh; height: 100dvh;
@@ -28,8 +27,7 @@ h1, h2, h3, .section-title, .layer-label { font-family: 'Playfair Display', seri
 .gateway-content h1 { font-size: clamp(3.5rem, 8vw, 5rem); letter-spacing: 4px; text-shadow: 0 4px 20px rgba(0,0,0,0.9); }
 .description-container { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
 .description { font-size: 0.95rem; color: #eaeaea; line-height: 1.8; text-shadow: 0 2px 10px rgba(0,0,0,0.9); }
-.text-link-btn { background: none; border: none; color: #fff; font-family: 'Inter', sans-serif; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; border-bottom: 1px solid transparent; transition: all 0.3s ease; padding: 5px 0; margin-top: 10px; text-shadow: 0 2px 10px rgba(0,0,0,0.9); }
-.text-link-btn:hover { color: #fff; border-color: #fff; }
+.text-link-btn { background: transparent; border: none; color: #fff; font-family: 'Inter', sans-serif; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; border-bottom: 1px solid transparent; transition: all 0.3s ease; padding: 5px 0; margin-top: 10px; text-shadow: 0 2px 10px rgba(0,0,0,0.9); }
 
 .gateway-btn { background: #fff; color: #000; border: none; padding: 1rem 3rem; font-family: 'Inter', sans-serif; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: transform 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
 .gateway-btn:hover { transform: scale(1.05); }
@@ -40,24 +38,23 @@ h1, h2, h3, .section-title, .layer-label { font-family: 'Playfair Display', seri
 .gateway-tags .minimal-tag { color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding-right: 8px; border-right: 1px solid rgba(255,255,255,0.2); text-shadow: 0 2px 8px rgba(0,0,0,0.9); background: transparent; border-radius: 0; }
 .gateway-tags .minimal-tag:last-child { border-right: none; }
 
-/* --- GPU-CRASH FIX: UNIFIED ARTWORK LAYERS --- */
-/* The strings stay perfectly still in the background */
+/* --- UNIFIED ARTWORK LAYERS (No VRAM Crashes) --- */
 #gateway-string-bg, #player-string-bg { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
 .bg-layer-cover { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; opacity: 0; transition: opacity 1.2s ease; }
 .bg-layer-cover.active { opacity: 0.8; }
 
-/* The container animates as ONE GPU layer, saving phone memory */
-#artwork-container { position: fixed; inset: 0; z-index: 2; pointer-events: none; display: flex; align-items: center; justify-content: center; }
-.float-anim { width: 100vw; height: 100vh; position: absolute; animation: floatVertical 12s ease-in-out infinite alternate; will-change: transform; transform: translateZ(0); }
+.artwork-section { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2; pointer-events: none; }
+#artwork-container { position: relative; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+.float-anim { width: 100vw; height: 100vh; position: absolute; animation: floatVertical 12s ease-in-out infinite alternate; }
 .layerImage { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity 1.2s ease; }
 .layerImage.active { opacity: 1; }
 
 @keyframes floatVertical {
-    0% { transform: translateY(-2%) translateZ(0); }
-    100% { transform: translateY(2%) translateZ(0); }
+    0% { transform: translateY(-2%); }
+    100% { transform: translateY(2%); }
 }
 
-/* --- PLAYER UI: ABSOLUTE TRANSPARENT POSITIONING --- */
+/* --- UI OVERLAY (100% PURE TRANSPARENCY) --- */
 #ui-container { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
 #active-tags, #fullscreenBtn, #layer-controls-section, #player-dock { pointer-events: auto; }
 
@@ -65,7 +62,7 @@ h1, h2, h3, .section-title, .layer-label { font-family: 'Playfair Display', seri
 .loading-spinner { width: 24px; height: 24px; border: 1px solid rgba(255,255,255,0.2); border-top: 1px solid #fff; border-radius: 50%; animation: spin 1s linear infinite; }
 .hud-text { text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.8); }
 
-/* TOP LEFT: Pure Text Tags */
+/* TOP LEFT TAGS */
 #active-tags {
     position: absolute;
     top: max(20px, env(safe-area-inset-top));
@@ -84,24 +81,25 @@ h1, h2, h3, .section-title, .layer-label { font-family: 'Playfair Display', seri
     letter-spacing: 2px;
     background: transparent !important;
     border: none !important;
+    box-shadow: none !important;
     padding: 0 !important;
     text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.8);
 }
 
-/* TOP RIGHT: Fullscreen Btn */
+/* FULLSCREEN BTN */
 #fullscreenBtn {
     position: absolute;
     top: max(20px, env(safe-area-inset-top));
     right: 20px;
-    background: transparent;
-    border: none;
+    background: transparent !important;
+    border: none !important;
     color: #fff;
     font-size: 24px;
     cursor: pointer;
     text-shadow: 0 2px 8px rgba(0,0,0,0.9);
 }
 
-/* BOTTOM LAYER DROPDOWNS (100% PURE TRANSPARENT) */
+/* PURE TRANSPARENT DROPDOWNS */
 #layer-controls-section {
     position: absolute;
     bottom: calc(max(20px, env(safe-area-inset-bottom)) + 90px);
@@ -110,17 +108,21 @@ h1, h2, h3, .section-title, .layer-label { font-family: 'Playfair Display', seri
     transition: opacity 0.4s ease;
     background: transparent !important;
     border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 .section-title { font-size: 16px; margin-bottom: 12px; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,0.9); }
 .layer-controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
 
-/* FORCE NO BACKGROUNDS */
 .layer-control {
     display: flex;
     flex-direction: column;
     gap: 4px;
     background: transparent !important;
     border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
     padding: 0 !important;
 }
 .layer-label { font-size: 10px; color: #e0e0e0; text-transform: uppercase; text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
@@ -138,7 +140,7 @@ h1, h2, h3, .section-title, .layer-label { font-family: 'Playfair Display', seri
 }
 .layer-select option { background: #000; color: #fff; text-shadow: none; }
 
-/* BOTTOM PLAYER DOCK */
+/* PLAYER DOCK */
 #player-dock {
     position: absolute;
     bottom: max(20px, env(safe-area-inset-bottom));
@@ -149,9 +151,11 @@ h1, h2, h3, .section-title, .layer-label { font-family: 'Playfair Display', seri
     gap: 12px;
     background: transparent !important;
     border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
 }
 .player-controls { display: flex; justify-content: center; align-items: center; gap: 30px; }
-.control-btn { background: transparent; border: none; color: #fff; cursor: pointer; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.9)); transition: transform 0.2s; }
+.control-btn { background: transparent !important; border: none !important; color: #fff; cursor: pointer; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.9)); transition: transform 0.2s; }
 .control-btn:hover { transform: scale(1.1); }
 
 .progress-section { width: 100%; }
