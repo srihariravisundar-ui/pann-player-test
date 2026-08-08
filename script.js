@@ -24,7 +24,8 @@
 
     const state = {
         metadata: null,
-        audioNodes: {}, 
+        audioPool: {}, // Safari strict audio track pool
+        visualSlots: {}, // Safari strict visual container pool
         selections: { visuals: {}, audio: {} },
         isPlaying: false,
         duration: 0,
@@ -124,83 +125,87 @@
         throw new Error("All IPFS gateways failed to load metadata.");
     }
 
-    // --- AUDIO FIX: Persistent Audio Nodes bypassing Safari Blocking ---
+    // --- THE SAFARI AUDIO ENGINE FIX ---
+    // Instead of creating new audio elements, we reuse the pre-approved pool
     async function loadAudioStreams() {
         UI.loadingOverlay.classList.remove('hidden');
         if (UI.playPauseBtn) UI.playPauseBtn.disabled = true;
 
         const activeCIDs = Object.values(state.selections.audio).filter(cid => cid);
-        const cidsToLoad = activeCIDs.filter(cid => !state.audioNodes[cid]);
         
-        const loadPromises = cidsToLoad.map(cid => {
+        const loadPromises = Object.keys(state.selections.audio).map(layerId => {
             return new Promise((resolve) => {
+                const cid = state.selections.audio[layerId];
+                const audioNode = state.audioPool[layerId]; // Get existing pre-approved node
+                
+                if (!cid || !audioNode) { resolve(null); return; }
+
                 const urls = getUrls(cid);
                 if (urls.length === 0) { resolve(null); return; }
 
-                const audio = new Audio();
-                audio.crossOrigin = "anonymous";
-                audio.loop = true;
-                audio.preload = "auto";
-                audio.volume = 0; // Load silently
-                
+                // If this node is already playing this exact track, skip loading
+                if (audioNode.src && urls.some(u => audioNode.src.includes(u.split('/').pop()))) {
+                    resolve({ layerId, audioNode });
+                    return;
+                }
+
+                audioNode.volume = 0; // Load silently
                 let attempt = 0;
 
                 const onCanPlay = () => {
-                    if (audio.duration > state.duration) state.duration = audio.duration;
-                    resolve({ cid, audio });
+                    if (audioNode.duration > state.duration) state.duration = audioNode.duration;
+                    resolve({ layerId, audioNode });
                 };
 
-                audio.addEventListener('canplaythrough', onCanPlay, { once: true });
-                audio.addEventListener('loadeddata', onCanPlay, { once: true });
+                audioNode.addEventListener('canplaythrough', onCanPlay, { once: true });
+                audioNode.addEventListener('loadeddata', onCanPlay, { once: true });
 
-                audio.addEventListener('error', () => { 
+                audioNode.addEventListener('error', () => { 
                     attempt++;
                     if (attempt < urls.length) {
-                        audio.src = urls[attempt];
-                        audio.load();
+                        audioNode.src = urls[attempt];
+                        audioNode.load();
                     } else { 
                         resolve(null); 
                     }
                 }); 
                 
-                audio.src = urls[attempt];
-                audio.load();
+                audioNode.src = urls[attempt];
+                audioNode.load();
             });
         });
 
-        const newNodes = await Promise.all(loadPromises);
+        await Promise.all(loadPromises);
 
         let syncTime = 0;
-        const currentActiveNodes = Object.values(state.audioNodes).filter(n => !n.paused && n.volume > 0);
+        const currentActiveNodes = Object.values(state.audioPool).filter(n => !n.paused && n.volume > 0);
         if (currentActiveNodes.length > 0) syncTime = currentActiveNodes[0].currentTime;
 
         // Apply new nodes
-        newNodes.forEach(result => {
-            if (result && result.audio) {
-                state.audioNodes[result.cid] = result.audio;
+        Object.keys(state.selections.audio).forEach(layerId => {
+            const cid = state.selections.audio[layerId];
+            const node = state.audioPool[layerId];
+            
+            if (cid && node) {
                 if (state.isPlaying) {
-                    result.audio.currentTime = syncTime;
-                    const p = result.audio.play();
+                    node.currentTime = syncTime;
+                    const p = node.play();
                     if (p !== undefined) p.catch(() => {});
                 }
+            } else if (node) {
+                node.pause();
             }
         });
 
         if (state.isPlaying) {
             enforceSync();
             setTimeout(() => { enforceSync(); }, 200);
+            
+            // Fade in active tracks safely
+            Object.keys(state.selections.audio).forEach(layerId => {
+                if (state.selections.audio[layerId]) state.audioPool[layerId].volume = 1;
+            });
         }
-
-        // Safely dispose old tracks
-        Object.keys(state.audioNodes).forEach(oldCid => {
-            if (!activeCIDs.includes(oldCid)) {
-                state.audioNodes[oldCid].pause();
-                state.audioNodes[oldCid].src = "";
-                delete state.audioNodes[oldCid];
-            } else {
-                state.audioNodes[oldCid].volume = 1; 
-            }
-        });
 
         if (UI.totalTimeEl) UI.totalTimeEl.textContent = formatTime(state.duration);
         if (UI.playPauseBtn) UI.playPauseBtn.disabled = false;
@@ -208,7 +213,7 @@
     }
 
     function enforceSync() {
-        const nodes = Object.values(state.audioNodes).filter(n => !n.paused);
+        const nodes = Object.values(state.audioPool).filter(n => !n.paused && n.src);
         if (nodes.length <= 1) return;
         
         const master = nodes[0];
@@ -216,10 +221,11 @@
             if (i === 0) return;
             const drift = node.currentTime - master.currentTime;
             
-            if (Math.abs(drift) > 0.1) {
+            // Relaxed threshold slightly to prevent Safari clicking artifacts
+            if (Math.abs(drift) > 0.2) {
                 node.currentTime = master.currentTime;
-            } else if (Math.abs(drift) > 0.01) {
-                node.playbackRate = master.playbackRate - (drift * 0.5); 
+            } else if (Math.abs(drift) > 0.03) {
+                node.playbackRate = master.playbackRate - (drift * 0.4); 
             } else {
                 node.playbackRate = master.playbackRate;
             }
@@ -227,7 +233,7 @@
     }
 
     function playAudio(targetTime = null) {
-        const nodes = Object.values(state.audioNodes);
+        const nodes = Object.values(state.audioPool).filter(n => n.src);
         if (nodes.length === 0) return;
 
         const timeToSet = targetTime !== null ? targetTime : (nodes[0].currentTime || 0);
@@ -245,19 +251,18 @@
         if (UI.iconPause) UI.iconPause.classList.remove('hidden');
         renderTags();
 
-        // Allow sync before raising volume
         setTimeout(() => {
             enforceSync();
             nodes.forEach(node => { node.volume = 1; });
         }, 250);
 
         if (state.syncInterval) clearInterval(state.syncInterval);
-        state.syncInterval = setInterval(enforceSync, 500); 
+        state.syncInterval = setInterval(enforceSync, 600); 
         requestAnimationFrame(updateLoop);
     }
 
     function pauseAudio() {
-        Object.values(state.audioNodes).forEach(node => node.pause());
+        Object.values(state.audioPool).forEach(node => node.pause());
         state.isPlaying = false;
         document.body.classList.remove('playing'); 
         if (UI.iconPlay) UI.iconPlay.classList.remove('hidden');
@@ -266,7 +271,7 @@
     }
 
     function stopAudio() {
-        Object.values(state.audioNodes).forEach(node => {
+        Object.values(state.audioPool).forEach(node => {
             node.pause();
             node.currentTime = 0;
             node.playbackRate = 1.0;
@@ -283,7 +288,7 @@
 
     function updateLoop() {
         if (!state.isPlaying) return;
-        const nodes = Object.values(state.audioNodes);
+        const nodes = Object.values(state.audioPool).filter(n => !n.paused && n.src);
         if (nodes.length > 0 && UI.progressFill && UI.currentTimeEl) {
             const current = nodes[0].currentTime;
             UI.progressFill.style.width = `${(current / state.duration) * 100}%`;
@@ -292,52 +297,50 @@
         animationFrameId = requestAnimationFrame(updateLoop);
     }
 
-    // --- VISUAL FIX: Strict Z-Index Locking ---
+    // --- THE VISUAL HIERARCHY FIX ---
+    // Injecting images directly into their locked z-index slots
     function updateVisuals(changedLayerId = null) {
         if (!state.metadata) return;
         const visuals = (state.metadata.layout?.layers || []).slice(0, 10);
 
-        visuals.forEach((layer, index) => {
+        visuals.forEach((layer) => {
             const layerId = layer.id;
             
-            // If a specific layer was selected, ONLY update that layer to prevent whole-screen flashing
+            // If a specific layer was selected, ONLY update that layer
             if (changedLayerId && changedLayerId !== layerId) return;
 
             const cid = state.selections.visuals[layerId];
-            if (!cid) return;
+            const slot = state.visualSlots[layerId]; // Get the locked container
+            
+            if (!slot) return;
+            if (!cid) {
+                slot.innerHTML = '';
+                return;
+            }
 
             const urls = getUrls(cid);
             if (urls.length === 0) return;
 
             const isString = layerId.toLowerCase().includes('string');
-            const targetContainer = isString ? UI.playerBg : UI.layerContainer;
 
-            // Mark old images for removal
-            const existingImages = targetContainer.querySelectorAll(`img[data-layer-id="${layerId}"]`);
-            existingImages.forEach(img => img.classList.add('old-layer'));
+            // Mark old image to fade out
+            const oldImg = slot.querySelector('img');
+            if (oldImg) oldImg.classList.remove('layer-visible');
 
             const img = new Image();
             img.className = isString ? 'bg-layer-cover' : 'layerImage';
-            img.dataset.layerId = layerId;
-            
-            // THE CRITICAL FIX: Mathematically lock the depth based on JSON array index
-            // So if Strings are index 0, they are glued to the back.
-            img.style.zIndex = index + 10; 
 
             let attempt = 0;
             img.onload = () => {
-                targetContainer.appendChild(img);
+                slot.appendChild(img);
                 
                 requestAnimationFrame(() => {
                     img.classList.add('layer-visible');
                 });
                 
-                // Safely remove only the old image for THIS specific layer
-                const oldImages = targetContainer.querySelectorAll(`img[data-layer-id="${layerId}"].old-layer`);
-                oldImages.forEach(oldImg => {
-                    oldImg.classList.remove('layer-visible');
-                    setTimeout(() => oldImg.remove(), 1500);
-                });
+                if (oldImg) {
+                    setTimeout(() => { if(oldImg.parentNode) oldImg.remove(); }, 1200);
+                }
             };
             img.onerror = () => { attempt++; if (attempt < urls.length) img.src = urls[attempt]; };
             img.src = urls[attempt];
@@ -349,7 +352,6 @@
         state.selections.audio[layerId] = audioCid;
         renderTags(); 
         
-        // Pass the layerId so we ONLY update the changed layer visually
         updateVisuals(layerId); 
         await loadAudioStreams(); 
     }
@@ -364,10 +366,33 @@
 
             if (UI.controls) UI.controls.innerHTML = '';
             
-            visuals.forEach((layer, i) => {
+            visuals.forEach((layer, index) => {
+                const layerId = layer.id || `layer_${index}`;
+                
+                // 1. PRE-BUILD THE SAFARI AUDIO POOL
+                const audio = new Audio();
+                audio.crossOrigin = "anonymous";
+                audio.loop = true;
+                audio.preload = "auto";
+                audio.preservesPitch = false;
+                state.audioPool[layerId] = audio;
+
+                // 2. PRE-BUILD THE LOCKED VISUAL HIERARCHY BOXES
+                const slot = document.createElement('div');
+                slot.className = 'layer-slot';
+                slot.style.zIndex = index + 5; // PERMANENT Z-INDEX LOCK
+                
+                const isString = layerId.toLowerCase().includes('string');
+                if (isString) {
+                    UI.playerBg.appendChild(slot);
+                } else {
+                    UI.layerContainer.appendChild(slot);
+                }
+                state.visualSlots[layerId] = slot;
+
+                // 3. BUILD THE DROPDOWNS
                 if (layer.states?.options?.length > 0) {
-                    const layerId = layer.id || `layer_${i}`;
-                    const audioLayer = audios[i];
+                    const audioLayer = audios[index];
                     
                     const div = document.createElement("div");
                     div.className = "dropdown-group";
@@ -389,7 +414,7 @@
 
                     div.appendChild(label);
                     div.appendChild(select);
-                    if (UI.controls) UI.controls.appendChild(div);
+                    UI.controls.appendChild(div);
 
                     select.addEventListener("change", (e) => {
                         const data = JSON.parse(e.target.value);
@@ -407,7 +432,7 @@
 
             renderTags();
             updateVisuals(); 
-            await loadAudioStreams(); 
+            // We intentionally do NOT load audio here yet. Safari demands user click first.
 
         } catch (e) {
             console.error("Failed to load metadata", e);
@@ -421,13 +446,15 @@
         });
     }
 
-    // THE SAFARI UNLOCK: Tapping "Enter" approves all audio tags for Safari silently
+    // THE MASTER SAFARI UNLOCK
     if (UI.enterBtn && UI.gatewayPage && UI.playerPage) {
-        UI.enterBtn.addEventListener('click', () => {
+        UI.enterBtn.addEventListener('click', async () => {
             
-            // Safari Security Unlock Hack
-            Object.values(state.audioNodes).forEach(node => {
-                node.play().catch(()=>{});
+            // The moment they tap, instantly whitelist all 10 audio tracks
+            Object.values(state.audioPool).forEach(node => {
+                node.volume = 0;
+                const p = node.play();
+                if (p !== undefined) p.catch(()=>{});
                 node.pause();
             });
 
@@ -437,6 +464,9 @@
                 UI.playerPage.classList.remove('hidden');
                 setTimeout(() => UI.playerPage.classList.add('active'), 50);
             }, 600);
+
+            // Now that Safari is unlocked, fetch the massive audio files safely
+            await loadAudioStreams();
         });
     }
 
@@ -476,7 +506,7 @@
             if (state.isPlaying) {
                 playAudio(newTime);
             } else {
-                Object.values(state.audioNodes).forEach(node => node.currentTime = newTime);
+                Object.values(state.audioPool).forEach(node => { if(node.src) node.currentTime = newTime; });
                 if (UI.progressFill) UI.progressFill.style.width = `${percentage * 100}%`;
                 if (UI.currentTimeEl) UI.currentTimeEl.textContent = formatTime(newTime);
             }
