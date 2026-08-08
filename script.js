@@ -1,10 +1,17 @@
 (async function () {
-    // --- CONFIGURATION ---
-    const USE_LOCAL_GITHUB_FILES = false; // Set to true if hosting full package on GitHub
+    // --- GITHUB CONFIGURATION ---
+    // FIXED: Must be false so the app fetches images from IPFS, preventing black boxes.
+    const USE_LOCAL_GITHUB_FILES = false; 
     const GITHUB_BASE_URL = "./"; 
 
-    const JSON_URL = "https://gateway.pinata.cloud/ipfs/QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq";
-    const IPFS_GATEWAYS = ['https://ipfs.io/ipfs/', 'https://cloudflare-ipfs.com/ipfs/', 'https://dweb.link/ipfs/'];
+    // Robust Fallback Gateways
+    const JSON_URL = "QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq";
+    const IPFS_GATEWAYS = [
+        'https://ipfs.io/ipfs/', 
+        'https://gateway.pinata.cloud/ipfs/',
+        'https://cloudflare-ipfs.com/ipfs/', 
+        'https://dweb.link/ipfs/'
+    ];
 
     const ARTISTS_LIST = [
         "Pradeep Kumar", "Anthony Daasan", "Kalyani Nair", "Susha", "Ghana NB",
@@ -78,8 +85,10 @@
         return `${IPFS_GATEWAYS[attempt] || IPFS_GATEWAYS[0]}${hash}`;
     }
 
+    // FIXED: Accurately grabs "Ambient", "Mullai", etc., rather than falling back to numbers
     function extractRealName(opt, index) {
         if (!opt) return `Variant ${index + 1}`;
+        if (opt.label) return opt.label;
         if (opt.name) return opt.name;
         if (opt.value) return opt.value;
         if (opt.trait_value) return opt.trait_value;
@@ -95,7 +104,7 @@
                 }
             } catch (e) {}
         }
-        return `Layer ${index + 1}`;
+        return `Option ${index + 1}`;
     }
 
     function renderTags() {
@@ -109,6 +118,19 @@
                 UI.tagsContainer.appendChild(tag);
             }
         });
+    }
+
+    // Resilient JSON fetcher (In case one gateway fails)
+    async function fetchJSON() {
+        for (const gateway of IPFS_GATEWAYS) {
+            try {
+                const res = await fetch(`${gateway}${JSON_URL}`);
+                if (res.ok) return await res.json();
+            } catch (e) {
+                console.warn(`Gateway ${gateway} failed, trying next...`);
+            }
+        }
+        throw new Error("All IPFS gateways failed to load metadata.");
     }
 
     async function loadAudioStreams() {
@@ -314,7 +336,7 @@
         state.selections.audio[id] = audioCid;
         updateVisuals();
         updateURLState();
-        renderTags(); // Update tags immediately on change
+        renderTags(); 
 
         if (state.isPlaying) {
             await loadAudioStreams();
@@ -328,8 +350,7 @@
         populateArtists();
         
         try {
-            const res = await fetch(JSON_URL);
-            const metadata = await res.json();
+            const metadata = await fetchJSON();
             
             const visuals = (metadata.layout?.layers || []).slice(0, 10);
             const audios = (metadata["audio-layout"]?.layers || []).slice(0, 10);
@@ -403,7 +424,6 @@
         setTimeout(() => {
             UI.gatewayPage.classList.add('hidden');
             UI.playerPage.classList.remove('hidden');
-            // Slight delay ensures browser paints block before fading in
             setTimeout(() => UI.playerPage.classList.add('active'), 50);
         }, 600);
     });
