@@ -175,26 +175,31 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
 }
 
 /* ====================================================
-   MOBILE RE-ARCHITECTURE (Pure Transparent Stack)
+   MOBILE FIXED STACK (Zero Jitter, Full Visibility)
    ==================================================== */
 @media (max-width: 768px) {
-    .control-section { background: transparent !important; }
-    
+    .control-section {
+        position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+        display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+        background: transparent !important;
+        padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+    }
+
     .layer-controls-section { 
         position: relative; top: auto; right: auto; transform: none; 
-        width: 90%; margin: 0 auto; 
+        width: 90%; margin-bottom: 1.5rem; 
     }
     body.playing .layer-controls-section { display: none !important; }
 
     .player { 
         position: relative; bottom: auto; left: auto; transform: none; 
-        width: 90%; margin: 0 auto; padding-bottom: max(2rem, env(safe-area-inset-bottom)); 
+        width: 92%; margin: 0 auto; 
     }
 
     .tags-container { 
-        position: absolute; top: 12vh; left: 1.5rem; transform: none; 
+        position: absolute; top: 10vh; left: 1.5rem; transform: none; 
         width: auto; align-items: flex-start; text-align: left; 
-        flex-direction: column; gap: 8px; padding: 0;
+        flex-direction: column; gap: 6px; padding: 0;
     }
     body.playing .tags-container { transform: none; }
     
@@ -204,34 +209,27 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
 @media (max-width: 480px) {
     .gateway-content h1 { font-size: 2.8rem; }
     
-    .control-section {
-        display: flex; flex-direction: column; justify-content: flex-end;
-        padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
-        background: transparent !important;
-    }
+    .layer-controls-section { margin-bottom: 1.5rem; }
+    .layer-controls { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .layer-select { font-size: 0.65rem; padding: 0.5rem; }
     
-    .layer-controls-section { margin-bottom: 2rem; }
-    .layer-controls { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .layer-select { font-size: 0.7rem; padding: 0.6rem; }
-    
-    .player { width: 92%; padding: 0; }
     .player-controls { justify-content: space-between; gap: 1rem; margin-bottom: 1rem; padding: 0 0.5rem; }
-    .control-btn svg { width: 24px; height: 24px; }
-    #icon-play, #icon-pause { width: 44px; height: 44px; }
+    .control-btn svg { width: 22px; height: 22px; }
+    #icon-play, #icon-pause { width: 40px; height: 40px; }
     
     .progress-section { width: 100%; padding: 0; }
-    .time-display { margin-bottom: 0.5rem; font-size: 0.7rem; }
+    .time-display { margin-bottom: 0.4rem; font-size: 0.65rem; }
     
     /* Pure text left-aligned tags (Zero Backgrounds) */
-    .tags-container { top: 10vh; left: 1.25rem; gap: 10px; }
+    .tags-container { top: 8vh; left: 1.25rem; gap: 8px; }
     .minimal-tag { 
-        font-size: 0.65rem; 
+        font-size: 0.6rem; 
         padding: 0 !important; 
         border: none !important; 
         background: transparent !important; 
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
         text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.8);
-        letter-spacing: 1.5px;
+        letter-spacing: 1px;
     }
 }
