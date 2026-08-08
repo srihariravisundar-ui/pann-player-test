@@ -125,8 +125,7 @@
         throw new Error("All IPFS gateways failed to load metadata.");
     }
 
-    // --- THE SAFARI AUDIO ENGINE FIX ---
-    // Instead of creating new audio elements, we reuse the pre-approved pool
+    // --- SAFARI AUDIO POOL ---
     async function loadAudioStreams() {
         UI.loadingOverlay.classList.remove('hidden');
         if (UI.playPauseBtn) UI.playPauseBtn.disabled = true;
@@ -136,20 +135,19 @@
         const loadPromises = Object.keys(state.selections.audio).map(layerId => {
             return new Promise((resolve) => {
                 const cid = state.selections.audio[layerId];
-                const audioNode = state.audioPool[layerId]; // Get existing pre-approved node
+                const audioNode = state.audioPool[layerId]; 
                 
                 if (!cid || !audioNode) { resolve(null); return; }
 
                 const urls = getUrls(cid);
                 if (urls.length === 0) { resolve(null); return; }
 
-                // If this node is already playing this exact track, skip loading
                 if (audioNode.src && urls.some(u => audioNode.src.includes(u.split('/').pop()))) {
                     resolve({ layerId, audioNode });
                     return;
                 }
 
-                audioNode.volume = 0; // Load silently
+                audioNode.volume = 0; 
                 let attempt = 0;
 
                 const onCanPlay = () => {
@@ -181,7 +179,6 @@
         const currentActiveNodes = Object.values(state.audioPool).filter(n => !n.paused && n.volume > 0);
         if (currentActiveNodes.length > 0) syncTime = currentActiveNodes[0].currentTime;
 
-        // Apply new nodes
         Object.keys(state.selections.audio).forEach(layerId => {
             const cid = state.selections.audio[layerId];
             const node = state.audioPool[layerId];
@@ -201,7 +198,6 @@
             enforceSync();
             setTimeout(() => { enforceSync(); }, 200);
             
-            // Fade in active tracks safely
             Object.keys(state.selections.audio).forEach(layerId => {
                 if (state.selections.audio[layerId]) state.audioPool[layerId].volume = 1;
             });
@@ -221,7 +217,6 @@
             if (i === 0) return;
             const drift = node.currentTime - master.currentTime;
             
-            // Relaxed threshold slightly to prevent Safari clicking artifacts
             if (Math.abs(drift) > 0.2) {
                 node.currentTime = master.currentTime;
             } else if (Math.abs(drift) > 0.03) {
@@ -297,8 +292,7 @@
         animationFrameId = requestAnimationFrame(updateLoop);
     }
 
-    // --- THE VISUAL HIERARCHY FIX ---
-    // Injecting images directly into their locked z-index slots
+    // --- THE VISUAL SWEEP FIX ---
     function updateVisuals(changedLayerId = null) {
         if (!state.metadata) return;
         const visuals = (state.metadata.layout?.layers || []).slice(0, 10);
@@ -306,13 +300,16 @@
         visuals.forEach((layer) => {
             const layerId = layer.id;
             
-            // If a specific layer was selected, ONLY update that layer
             if (changedLayerId && changedLayerId !== layerId) return;
 
             const cid = state.selections.visuals[layerId];
-            const slot = state.visualSlots[layerId]; // Get the locked container
+            const slot = state.visualSlots[layerId]; 
             
             if (!slot) return;
+            
+            // THE LOCK: Record exactly which CID this slot is SUPPOSED to show right now.
+            slot.dataset.targetCid = cid;
+
             if (!cid) {
                 slot.innerHTML = '';
                 return;
@@ -322,25 +319,30 @@
             if (urls.length === 0) return;
 
             const isString = layerId.toLowerCase().includes('string');
-
-            // Mark old image to fade out
-            const oldImg = slot.querySelector('img');
-            if (oldImg) oldImg.classList.remove('layer-visible');
-
             const img = new Image();
             img.className = isString ? 'bg-layer-cover' : 'layerImage';
 
             let attempt = 0;
             img.onload = () => {
+                // THE RACE CONDITION FIX: 
+                // If you clicked a different option while this was downloading, discard it!
+                if (slot.dataset.targetCid !== cid) return;
+
+                // Grab ALL existing images in this specific slot (in case of rapid clicking)
+                const oldImages = Array.from(slot.querySelectorAll('img'));
+                
+                // Fade them out and queue for absolute destruction
+                oldImages.forEach(oldImg => {
+                    oldImg.classList.remove('layer-visible');
+                    setTimeout(() => { if (oldImg.parentNode) oldImg.remove(); }, 1200);
+                });
+
+                // Append the new, correct image
                 slot.appendChild(img);
                 
                 requestAnimationFrame(() => {
                     img.classList.add('layer-visible');
                 });
-                
-                if (oldImg) {
-                    setTimeout(() => { if(oldImg.parentNode) oldImg.remove(); }, 1200);
-                }
             };
             img.onerror = () => { attempt++; if (attempt < urls.length) img.src = urls[attempt]; };
             img.src = urls[attempt];
@@ -369,7 +371,6 @@
             visuals.forEach((layer, index) => {
                 const layerId = layer.id || `layer_${index}`;
                 
-                // 1. PRE-BUILD THE SAFARI AUDIO POOL
                 const audio = new Audio();
                 audio.crossOrigin = "anonymous";
                 audio.loop = true;
@@ -377,10 +378,9 @@
                 audio.preservesPitch = false;
                 state.audioPool[layerId] = audio;
 
-                // 2. PRE-BUILD THE LOCKED VISUAL HIERARCHY BOXES
                 const slot = document.createElement('div');
                 slot.className = 'layer-slot';
-                slot.style.zIndex = index + 5; // PERMANENT Z-INDEX LOCK
+                slot.style.zIndex = index + 5; 
                 
                 const isString = layerId.toLowerCase().includes('string');
                 if (isString) {
@@ -390,7 +390,6 @@
                 }
                 state.visualSlots[layerId] = slot;
 
-                // 3. BUILD THE DROPDOWNS
                 if (layer.states?.options?.length > 0) {
                     const audioLayer = audios[index];
                     
@@ -432,7 +431,6 @@
 
             renderTags();
             updateVisuals(); 
-            // We intentionally do NOT load audio here yet. Safari demands user click first.
 
         } catch (e) {
             console.error("Failed to load metadata", e);
@@ -446,11 +444,9 @@
         });
     }
 
-    // THE MASTER SAFARI UNLOCK
     if (UI.enterBtn && UI.gatewayPage && UI.playerPage) {
         UI.enterBtn.addEventListener('click', async () => {
             
-            // The moment they tap, instantly whitelist all 10 audio tracks
             Object.values(state.audioPool).forEach(node => {
                 node.volume = 0;
                 const p = node.play();
@@ -465,7 +461,6 @@
                 setTimeout(() => UI.playerPage.classList.add('active'), 50);
             }, 600);
 
-            // Now that Safari is unlocked, fetch the massive audio files safely
             await loadAudioStreams();
         });
     }
