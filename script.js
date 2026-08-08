@@ -1,10 +1,8 @@
 (async function () {
-    // --- GITHUB CONFIGURATION ---
-    // FIXED: Must be false so the app fetches images from IPFS, preventing black boxes.
+    // FIXED: Must be false to fetch images from IPFS, stopping the broken black boxes.
     const USE_LOCAL_GITHUB_FILES = false; 
     const GITHUB_BASE_URL = "./"; 
 
-    // Robust Fallback Gateways
     const JSON_URL = "QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq";
     const IPFS_GATEWAYS = [
         'https://ipfs.io/ipfs/', 
@@ -35,14 +33,17 @@
 
     let animationFrameId = null;
 
+    // UI Mapping to the new HTML structure
     const UI = {
         gatewayPage: document.getElementById("gateway-page"),
-        gatewayBg: document.getElementById("gateway-background"),
+        gatewayStringBg: document.getElementById("gateway-string-bg"),
+        gatewayLayerContainer: document.getElementById("gateway-layer-container"),
         artistsContainer: document.getElementById("artists-container"),
         learnMoreBtn: document.getElementById("learnMoreBtn"),
         moreText: document.getElementById("moreText"),
         playerPage: document.getElementById("player-page"),
-        playerBg: document.getElementById("player-background"), 
+        playerStringBg: document.getElementById("player-string-bg"),
+        playerLayerContainer: document.getElementById("player-layer-container"),
         enterBtn: document.getElementById("enterBtn"),
         controls: document.getElementById("controls"),
         tagsContainer: document.getElementById("active-tags"),
@@ -52,7 +53,7 @@
         stopBtn: document.getElementById("stopBtn"),
         saveBtn: document.getElementById("saveBtn"),
         randomizeBtn: document.getElementById("randomizeBtn"),
-        layerContainer: document.getElementById("layer-container"),
+        loadingOverlay: document.getElementById("loading-overlay"),
         progressFill: document.getElementById("progress-fill"),
         progressBar: document.getElementById("progressBar"),
         currentTimeEl: document.getElementById("current-time"),
@@ -85,12 +86,12 @@
         return `${IPFS_GATEWAYS[attempt] || IPFS_GATEWAYS[0]}${hash}`;
     }
 
-    // FIXED: Accurately grabs "Ambient", "Mullai", etc., rather than falling back to numbers
+    // FIXED: Bulletproof Name Extractor ensures "Option 1" never appears if JSON has names
     function extractRealName(opt, index) {
-        if (!opt) return `Variant ${index + 1}`;
-        if (opt.label) return opt.label;
-        if (opt.name) return opt.name;
+        if (!opt) return `Layer ${index + 1}`;
         if (opt.value) return opt.value;
+        if (opt.name) return opt.name;
+        if (opt.label) return opt.label;
         if (opt.trait_value) return opt.trait_value;
         if (opt.attributes && Array.isArray(opt.attributes)) {
             const valid = opt.attributes.find(attr => attr.value);
@@ -120,7 +121,6 @@
         });
     }
 
-    // Resilient JSON fetcher (In case one gateway fails)
     async function fetchJSON() {
         for (const gateway of IPFS_GATEWAYS) {
             try {
@@ -259,34 +259,33 @@
     }
 
     function updateVisuals() {
-        const oldPlayerLayers = UI.layerContainer.querySelectorAll('.layerImage');
-        const oldPlayerBgLayers = UI.playerBg.querySelectorAll('.layerImage');
-        const oldGatewayLayers = UI.gatewayBg.querySelectorAll('.layerImage');
+        // Clear old elements from all containers gracefully
+        const oldGStrings = UI.gatewayStringBg.querySelectorAll('.bg-layer-cover');
+        const oldPStrings = UI.playerStringBg.querySelectorAll('.bg-layer-cover');
+        const oldGLayers = UI.gatewayLayerContainer.querySelectorAll('.layerImage');
+        const oldPLayers = UI.playerLayerContainer.querySelectorAll('.layerImage');
 
-        oldPlayerLayers.forEach(el => { el.classList.remove('active'); setTimeout(() => el.remove(), 1200); });
-        oldPlayerBgLayers.forEach(el => { el.classList.remove('active'); setTimeout(() => el.remove(), 1200); });
-        oldGatewayLayers.forEach(el => { el.classList.remove('active'); setTimeout(() => el.remove(), 1200); });
+        oldGStrings.forEach(el => { el.classList.remove('active'); setTimeout(() => el.remove(), 1200); });
+        oldPStrings.forEach(el => { el.classList.remove('active'); setTimeout(() => el.remove(), 1200); });
+        oldGLayers.forEach(el => { el.classList.remove('active'); setTimeout(() => el.remove(), 1200); });
+        oldPLayers.forEach(el => { el.classList.remove('active'); setTimeout(() => el.remove(), 1200); });
 
         Object.entries(state.selections.visuals).forEach(([layerId, cid]) => {
             if (cid) {
                 const url = toGatewayURL(cid);
                 
+                // Distribute full-screen backgrounds vs inner floating images
                 if (layerId.toLowerCase().includes('string')) {
-                    const imgG = new Image(); imgG.src = url; imgG.className = 'layerImage bg-layer-cover';
-                    const imgP = new Image(); imgP.src = url; imgP.className = 'layerImage bg-layer-cover';
-                    UI.gatewayBg.appendChild(imgG);
-                    UI.playerBg.appendChild(imgP);
+                    const imgG = new Image(); imgG.src = url; imgG.className = 'bg-layer-cover';
+                    const imgP = new Image(); imgP.src = url; imgP.className = 'bg-layer-cover';
+                    UI.gatewayStringBg.appendChild(imgG);
+                    UI.playerStringBg.appendChild(imgP);
                     setTimeout(() => { imgG.classList.add('active'); imgP.classList.add('active'); }, 50);
                 } else {
-                    const imgG = new Image(); imgG.src = url; imgG.className = 'layerImage floating-layer';
-                    const imgP = new Image(); imgP.src = url; imgP.className = 'layerImage floating-layer';
-                    
-                    const delay = Math.random() * -15; 
-                    imgG.style.animationDelay = `${delay}s`;
-                    imgP.style.animationDelay = `${delay}s`;
-                    
-                    UI.gatewayBg.appendChild(imgG);
-                    UI.layerContainer.appendChild(imgP);
+                    const imgG = new Image(); imgG.src = url; imgG.className = 'layerImage';
+                    const imgP = new Image(); imgP.src = url; imgP.className = 'layerImage';
+                    UI.gatewayLayerContainer.appendChild(imgG);
+                    UI.playerLayerContainer.appendChild(imgP);
                     setTimeout(() => { imgG.classList.add('active'); imgP.classList.add('active'); }, 50);
                 }
             }
