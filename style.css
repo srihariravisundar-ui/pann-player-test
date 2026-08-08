@@ -25,10 +25,29 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .hidden { display: none !important; }
 
 /* --- Gateway Page & Dynamic Background --- */
-#gateway-page { position: relative; display: flex; align-items: center; justify-content: center; text-align: center; padding: 2rem; }
+/* --- Gateway Page & Dynamic Background --- */
+#gateway-page { 
+    position: relative; 
+    display: flex; 
+    flex-direction: column; /* Changed for better scrolling */
+    text-align: center; 
+    padding: 4rem 2rem; /* Added padding so content doesn't hit edges when scrolling */
+    overflow-y: auto; /* Allows scrolling when "Learn More" expands */
+    overflow-x: hidden;
+}
 .gateway-bg, .player-bg { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; overflow: hidden; z-index: 1; }
 .gateway-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%); z-index: 2; pointer-events: none; }
-.gateway-content { position: relative; z-index: 3; max-width: 800px; display: flex; flex-direction: column; gap: 2.5rem; align-items: center; }
+
+.gateway-content { 
+    margin: auto; /* Centers content, but prevents top-cutoff when scrolling */
+    position: relative; 
+    z-index: 3; 
+    max-width: 800px; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 2.5rem; 
+    align-items: center; 
+}
 .gateway-content h1 { font-size: 5rem; letter-spacing: 4px; text-shadow: 0 4px 20px rgba(0,0,0,0.8); }
 
 .description-container { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0 1rem; }
@@ -41,9 +60,13 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 
 .artists-section { margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 2rem; width: 100%; }
 .artists-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 1.5rem; text-shadow: 0 2px 10px rgba(0,0,0,0.9); }
-.center-tags { justify-content: center; max-height: 25vh; overflow-y: auto; }
-.center-tags::-webkit-scrollbar { width: 4px; }
-.center-tags::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+
+/* New Dedicated Gateway Tags (Fixes the invisible artists bug) */
+.gateway-tags { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-height: 30vh; overflow-y: auto; padding-bottom: 1rem; }
+.gateway-tags::-webkit-scrollbar { width: 4px; }
+.gateway-tags::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+.gateway-tags .minimal-tag { color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding-right: 8px; border-right: 1px solid var(--border-color); text-shadow: 0 2px 8px rgba(0,0,0,0.9); opacity: 0.9; }
+.gateway-tags .minimal-tag:last-child { border-right: none; }
 
 /* --- Fully Opaque Cinematic Artwork Layers --- */
 .layerImage { 
