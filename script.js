@@ -4,7 +4,7 @@
 
     const JSON_URL = "QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq";
     
-    // The Gateway Cascader
+    // The Gateway Cascader: Dweb & Cloudflare prioritize speed and rarely rate-limit.
     const IPFS_GATEWAYS = [
         'https://dweb.link/ipfs/',
         'https://cloudflare-ipfs.com/ipfs/', 
@@ -132,18 +132,15 @@
         throw new Error("All IPFS gateways failed to load metadata.");
     }
 
-    // THE FIX: Seamless Hot-Swapping Engine
+    // --- THE FIX: MUTE-SYNC-SWAP AUDIO ENGINE ---
     async function loadAudioStreams() {
-        // Show loading indicator but DO NOT stop the currently playing music
         if (UI.loadingOverlay) UI.loadingOverlay.style.display = 'flex';
         UI.playPauseBtn.disabled = true;
 
         const activeCIDs = Object.values(state.selections.audio).filter(cid => cid);
-        
-        // 1. Identify ONLY the new tracks that need to be downloaded
         const cidsToLoad = activeCIDs.filter(cid => !state.audioNodes[cid]);
         
-        // 2. Fetch the new tracks entirely in the background
+        // 1. Load missing tracks in the background
         const loadPromises = cidsToLoad.map(cid => {
             return new Promise((resolve) => {
                 const urls = getUrls(cid);
@@ -154,6 +151,7 @@
                 audio.loop = true;
                 audio.preload = "auto";
                 audio.preservesPitch = false; 
+                audio.volume = 0; // START MUTED TO HIDE DECODING JITTER
                 
                 let attempt = 0;
 
@@ -177,17 +175,16 @@
             });
         });
 
-        // Wait for IPFS to finish downloading the new stems
         const newNodes = await Promise.all(loadPromises);
 
-        // 3. HOT-SWAP: Grab the exact timestamp of the music currently playing
+        // 2. Identify the exact millisecond the master track is currently at
         let syncTime = 0;
-        const currentActiveNodes = Object.values(state.audioNodes).filter(n => !n.paused);
+        const currentActiveNodes = Object.values(state.audioNodes).filter(n => !n.paused && n.volume > 0);
         if (currentActiveNodes.length > 0) {
             syncTime = currentActiveNodes[0].currentTime;
         }
 
-        // 4. Inject the new tracks perfectly in sync
+        // 3. Inject new tracks silently
         newNodes.forEach(result => {
             if (result && result.audio) {
                 state.audioNodes[result.cid] = result.audio;
@@ -199,16 +196,24 @@
             }
         });
 
-        // 5. Garbage Collect: NOW we delete the old tracks that are no longer selected
+        // 4. Stabilize Phase-Lock (The browser gets 500ms to align the invisible audio buffers)
+        if (state.isPlaying && newNodes.length > 0) {
+            enforceSync();
+            await new Promise(r => setTimeout(r, 500));
+            enforceSync(); // Final perfect lock
+        }
+
+        // 5. Crossfade/Swap: Unmute the requested tracks, destroy the unwanted tracks
         Object.keys(state.audioNodes).forEach(oldCid => {
             if (!activeCIDs.includes(oldCid)) {
                 state.audioNodes[oldCid].pause();
                 state.audioNodes[oldCid].src = "";
                 delete state.audioNodes[oldCid];
+            } else {
+                state.audioNodes[oldCid].volume = 1; 
             }
         });
 
-        // Hide loading indicator, ready to go
         UI.totalTimeEl.textContent = formatTime(state.duration);
         UI.playPauseBtn.disabled = false;
         if (UI.loadingOverlay) UI.loadingOverlay.style.display = 'none';
@@ -229,11 +234,16 @@
             if (i === 0) return;
             const drift = node.currentTime - master.currentTime;
             
-            if (Math.abs(drift) > 0.2) {
+            // If drift is huge (> 100ms), snap playhead instantly
+            if (Math.abs(drift) > 0.1) {
                 node.currentTime = master.currentTime;
-            } else if (Math.abs(drift) > 0.01) {
+            } 
+            // If drift is minor, gently adjust speed to phase-lock without wobbling
+            else if (Math.abs(drift) > 0.01) {
                 node.playbackRate = master.playbackRate - (drift * 0.5); 
-            } else {
+            } 
+            // Perfectly in sync
+            else {
                 node.playbackRate = master.playbackRate;
             }
         });
@@ -244,7 +254,12 @@
         if (nodes.length === 0) return;
 
         const timeToSet = targetTime !== null ? targetTime : nodes[0].currentTime;
-        nodes.forEach(node => { node.currentTime = timeToSet; });
+        
+        // Mute tracks, push to timestamp, start decoding
+        nodes.forEach(node => { 
+            node.volume = 0; 
+            node.currentTime = timeToSet; 
+        });
 
         nodes.forEach(node => {
             const p = node.play();
@@ -256,8 +271,13 @@
         
         UI.iconPlay.classList.add('hidden');
         UI.iconPause.classList.remove('hidden');
-
         renderTags();
+
+        // Give browser 250ms to decode 9 layers, force phase-lock, then unmute
+        setTimeout(() => {
+            enforceSync();
+            nodes.forEach(node => { node.volume = 1; });
+        }, 250);
         
         if (state.syncInterval) clearInterval(state.syncInterval);
         state.syncInterval = setInterval(enforceSync, 500); 
@@ -381,7 +401,6 @@
         return false;
     }
 
-    // THE FIX: Update visuals AFTER the new audio is fully loaded so art and sound swap together
     async function handleChange(id, visualCid, audioCid) {
         state.selections.visuals[id] = visualCid;
         state.selections.audio[id] = audioCid;
@@ -486,7 +505,6 @@
 
     UI.stopBtn.addEventListener('click', () => stopAudio());
 
-    // THE FIX: Hot-Swap Visuals ONLY after audio is ready
     UI.randomizeBtn.addEventListener('click', async () => {
         UI.controls.querySelectorAll('.layer-select').forEach(select => {
             select.selectedIndex = Math.floor(Math.random() * select.options.length);
@@ -516,6 +534,7 @@
         const newTime = percentage * state.duration;
         
         if (state.isPlaying) {
+            // Hot-swap seeks handles the mute pipeline internally
             playAudio(newTime);
         } else {
             Object.values(state.audioNodes).forEach(node => node.currentTime = newTime);
