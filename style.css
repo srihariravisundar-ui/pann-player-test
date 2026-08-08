@@ -1,9 +1,8 @@
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 html, body {
-    /* Locks iOS viewport from breaking */
-    position: fixed; inset: 0;
-    overflow: hidden;
+    /* Locks iOS viewport */
+    position: fixed; inset: 0; overflow: hidden;
     background: #000; color: #fff;
     font-family: 'Inter', sans-serif;
     overscroll-behavior: none;
@@ -11,29 +10,43 @@ html, body {
 
 h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
 
-/* Reverted Background & Artworks */
-.background-container, .artwork-container {
+/* Perfect Scaling for Background vs Foreground */
+.background-container {
     position: absolute; inset: 0; 
     width: 100%; height: 100%;
-    pointer-events: none;
+    z-index: 1; pointer-events: none;
 }
-.background-container { z-index: 1; }
 
-.artwork-container { 
-    z-index: 2; 
+.artwork-wrapper {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 2; pointer-events: none;
     display: flex; align-items: center; justify-content: center;
 }
 
-/* Background is full bleed */
+/* THE ANIMATION FIX: Animates the container, NOT the images. Prevents iOS Crash. */
+.artwork-container {
+    position: relative;
+    width: 85vw; height: 85vw; max-width: 75vh; max-height: 75vh;
+    animation: floatArtwork 8s ease-in-out infinite;
+    transform: translateZ(0); /* Hardware acceleration */
+}
+
+@keyframes floatArtwork {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-12px); }
+}
+
+/* Background is strictly COVER */
 .bg-layer-cover {
     position: absolute; width: 100%; height: 100%;
     object-fit: cover; opacity: 0; transition: opacity 1.5s ease;
 }
 
-/* Foreground layers are contained perfectly inside the viewport */
+/* Artwork layers are strictly CONTAIN */
 .layerImage {
-    position: absolute;
-    width: 85vw; height: 85vw; max-width: 75vh; max-height: 75vh;
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
     object-fit: contain; opacity: 0; transition: opacity 1.5s ease;
 }
 
@@ -41,7 +54,7 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
 
 /* UI Overlay */
 .ui-container {
-    position: absolute; inset: 0; z-index: 10;
+    position: absolute; inset: 0; z-index: 100;
     pointer-events: none; display: flex; flex-direction: column;
 }
 
@@ -55,7 +68,7 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
 /* Gateway */
 #gateway-page {
     align-items: center; justify-content: center;
-    background: rgba(0,0,0,0.75);
+    background: rgba(0,0,0,0.8);
     overflow-y: auto; -webkit-overflow-scrolling: touch;
     padding: 2rem;
 }
@@ -118,7 +131,7 @@ body.playing .layer-dropdowns { opacity: 0; pointer-events: none; }
 .icon-btn:active { transform: scale(0.9); }
 
 #loading-overlay {
-    position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.8);
+    position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.8);
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
 }
 .spinner { width: 30px; height: 30px; border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; }
