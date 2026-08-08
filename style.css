@@ -170,7 +170,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
 }
 
 /* ====================================================
-   FOOLPROOF MOBILE LAYOUT (Zero Absolute Traps, Fully Touchable)
+   TRUE MOBILE-FIRST FLEX LAYOUT (Fully Transparent & Visible)
    ==================================================== */
 @media (max-width: 768px) {
     body {
@@ -183,13 +183,13 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
     .container {
         display: flex !important;
         flex-direction: column !important;
-        height: 100dvh !important;
-        width: 100vw !important;
+        height: 100% !important;
+        width: 100% !important;
         position: relative !important;
         overflow-y: auto !important;
     }
 
-    /* Artwork is forced into a true background layer with zero pointer blocking */
+    /* Artwork sits fixed in the background */
     .artwork-section {
         position: fixed !important;
         inset: 0 !important;
@@ -200,7 +200,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         pointer-events: none !important;
     }
 
-    /* Control section is now fully relative, scrollable, and 100% touchable immediately */
+    /* Control section flows naturally as a scrollable flex container */
     .control-section {
         position: relative !important;
         width: 100vw !important;
@@ -218,7 +218,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         pointer-events: auto !important;
     }
 
-    /* Edit mode dropdowns: fully transparent background, perfectly aligned 2-column grid */
+    /* Edit mode dropdowns: fully transparent background matching your request */
     .layer-controls-section {
         position: relative !important;
         top: auto !important; right: auto !important; transform: none !important;
