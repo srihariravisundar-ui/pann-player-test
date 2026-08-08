@@ -1,6 +1,6 @@
 (async function () {
     // --- GITHUB CONFIGURATION ---
- const USE_LOCAL_GITHUB_FILES = false;
+    const USE_LOCAL_GITHUB_FILES = false; 
     const GITHUB_BASE_URL = "./"; 
 
     const JSON_URL = "https://gateway.pinata.cloud/ipfs/QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq";
