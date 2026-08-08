@@ -1,11 +1,10 @@
 (async function () {
-    // ENSURE IT PULLS FROM IPFS
     const USE_LOCAL_GITHUB_FILES = false; 
     const GITHUB_BASE_URL = "./"; 
 
     const JSON_URL = "QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq";
     
-    // The Gateway Cascader: Dweb & Cloudflare prioritize speed and rarely rate-limit.
+    // The Gateway Cascader
     const IPFS_GATEWAYS = [
         'https://dweb.link/ipfs/',
         'https://cloudflare-ipfs.com/ipfs/', 
@@ -79,7 +78,6 @@
         return `${m}:${s.toString().padStart(2, '0')}`;
     }
 
-    // THE FIX: Returns an array of ALL gateways so if one fails, it instantly tries the next
     function getUrls(cid) {
         if (!cid) return [];
         if (cid.startsWith("http")) return [cid];
@@ -88,7 +86,6 @@
         return IPFS_GATEWAYS.map(gw => `${gw}${hash}`);
     }
 
-    // THE FIX: Bulletproof name extraction
     function extractRealName(opt, index) {
         if (!opt) return `Option ${index + 1}`;
         if (opt.label) return opt.label;
@@ -135,23 +132,22 @@
         throw new Error("All IPFS gateways failed to load metadata.");
     }
 
+    // THE FIX: Seamless Hot-Swapping Engine
     async function loadAudioStreams() {
+        // Show loading indicator but DO NOT stop the currently playing music
+        if (UI.loadingOverlay) UI.loadingOverlay.style.display = 'flex';
+        UI.playPauseBtn.disabled = true;
+
         const activeCIDs = Object.values(state.selections.audio).filter(cid => cid);
         
-        Object.keys(state.audioNodes).forEach(oldCid => {
-            if (!activeCIDs.includes(oldCid)) {
-                state.audioNodes[oldCid].pause();
-                state.audioNodes[oldCid].src = "";
-                delete state.audioNodes[oldCid];
-            }
-        });
-
-        const loadPromises = activeCIDs.map(cid => {
+        // 1. Identify ONLY the new tracks that need to be downloaded
+        const cidsToLoad = activeCIDs.filter(cid => !state.audioNodes[cid]);
+        
+        // 2. Fetch the new tracks entirely in the background
+        const loadPromises = cidsToLoad.map(cid => {
             return new Promise((resolve) => {
-                if (state.audioNodes[cid]) { resolve(); return; }
-
                 const urls = getUrls(cid);
-                if (urls.length === 0) { resolve(); return; }
+                if (urls.length === 0) { resolve(null); return; }
 
                 const audio = new Audio();
                 audio.crossOrigin = "anonymous";
@@ -163,28 +159,59 @@
 
                 audio.addEventListener('canplaythrough', () => {
                     if (audio.duration > state.duration) state.duration = audio.duration;
-                    resolve();
+                    resolve({ cid, audio });
                 }, { once: true });
 
-                // THE FIX: If an audio file fails (Rate Limit), seamlessly try the next Gateway
                 audio.addEventListener('error', () => { 
                     attempt++;
                     if (attempt < urls.length) {
                         audio.src = urls[attempt];
                         audio.load();
                     } else {
-                        resolve(); 
+                        resolve(null); 
                     }
                 }); 
                 
                 audio.src = urls[attempt];
                 audio.load();
-                state.audioNodes[cid] = audio;
             });
         });
 
-        await Promise.all(loadPromises);
+        // Wait for IPFS to finish downloading the new stems
+        const newNodes = await Promise.all(loadPromises);
+
+        // 3. HOT-SWAP: Grab the exact timestamp of the music currently playing
+        let syncTime = 0;
+        const currentActiveNodes = Object.values(state.audioNodes).filter(n => !n.paused);
+        if (currentActiveNodes.length > 0) {
+            syncTime = currentActiveNodes[0].currentTime;
+        }
+
+        // 4. Inject the new tracks perfectly in sync
+        newNodes.forEach(result => {
+            if (result && result.audio) {
+                state.audioNodes[result.cid] = result.audio;
+                if (state.isPlaying) {
+                    result.audio.currentTime = syncTime;
+                    const p = result.audio.play();
+                    if (p !== undefined) p.catch(e => {});
+                }
+            }
+        });
+
+        // 5. Garbage Collect: NOW we delete the old tracks that are no longer selected
+        Object.keys(state.audioNodes).forEach(oldCid => {
+            if (!activeCIDs.includes(oldCid)) {
+                state.audioNodes[oldCid].pause();
+                state.audioNodes[oldCid].src = "";
+                delete state.audioNodes[oldCid];
+            }
+        });
+
+        // Hide loading indicator, ready to go
         UI.totalTimeEl.textContent = formatTime(state.duration);
+        UI.playPauseBtn.disabled = false;
+        if (UI.loadingOverlay) UI.loadingOverlay.style.display = 'none';
         
         if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({ title: 'Pann', artist: 'Pradeep Kumar & The Collective' });
@@ -304,7 +331,6 @@
                 imgP.src = urls[attempt];
             };
 
-            // THE FIX: If an image is blocked by IPFS rate-limits (HTTP 429), instantly fallback to prevent Black Boxes
             imgG.onerror = () => { attempt++; loadNext(); };
 
             loadNext();
@@ -355,23 +381,16 @@
         return false;
     }
 
+    // THE FIX: Update visuals AFTER the new audio is fully loaded so art and sound swap together
     async function handleChange(id, visualCid, audioCid) {
-        let currentTime = 0;
-        const nodes = Object.values(state.audioNodes);
-        if (nodes.length > 0) currentTime = nodes[0].currentTime;
-
         state.selections.visuals[id] = visualCid;
         state.selections.audio[id] = audioCid;
-        updateVisuals();
+        
         updateURLState();
         renderTags(); 
 
-        if (state.isPlaying) {
-            await loadAudioStreams();
-            playAudio(currentTime); 
-        } else {
-            await loadAudioStreams(); 
-        }
+        await loadAudioStreams(); 
+        updateVisuals(); 
     }
 
     async function init() {
@@ -467,11 +486,8 @@
 
     UI.stopBtn.addEventListener('click', () => stopAudio());
 
+    // THE FIX: Hot-Swap Visuals ONLY after audio is ready
     UI.randomizeBtn.addEventListener('click', async () => {
-        let currentTime = 0;
-        const nodes = Object.values(state.audioNodes);
-        if (nodes.length > 0) currentTime = nodes[0].currentTime;
-
         UI.controls.querySelectorAll('.layer-select').forEach(select => {
             select.selectedIndex = Math.floor(Math.random() * select.options.length);
             const realId = select.dataset.layerId; 
@@ -480,12 +496,11 @@
             state.selections.audio[realId] = data.audio;
         });
 
-        updateVisuals();
         updateURLState();
         renderTags();
         
         await loadAudioStreams();
-        if (state.isPlaying) playAudio(currentTime);
+        updateVisuals(); 
     });
 
     UI.saveBtn.addEventListener('click', () => {
