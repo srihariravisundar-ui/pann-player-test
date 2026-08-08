@@ -170,7 +170,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
 }
 
 /* ====================================================
-   STABLE MOBILE-FIRST FLEX LAYOUT (Zero Glitches/Invisible HUD)
+   TRUE MOBILE-FIRST FLUID LAYOUT (Zero Glitches, Immediate Paint)
    ==================================================== */
 @media (max-width: 768px) {
     body {
@@ -186,10 +186,8 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         height: 100dvh !important;
         width: 100vw !important;
         position: relative !important;
-        overflow-y: auto !important;
     }
 
-    /* Artwork sits fixed in the background natively */
     .artwork-section {
         position: fixed !important;
         inset: 0 !important;
@@ -200,7 +198,6 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         pointer-events: none !important;
     }
 
-    /* Control section flows naturally as a scrollable flex container */
     .control-section {
         position: relative !important;
         width: 100vw !important;
@@ -208,7 +205,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         display: flex !important;
         flex-direction: column !important;
         justify-content: space-between !important;
-        padding: 1rem 1rem calc(2rem + env(safe-area-inset-bottom)) 1rem !important;
+        padding: 1.25rem 1rem calc(2rem + env(safe-area-inset-bottom)) 1rem !important;
         z-index: 10 !important;
         background: transparent !important;
         pointer-events: auto !important;
@@ -218,42 +215,42 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         pointer-events: auto !important;
     }
 
-    /* Edit mode dropdowns: fully transparent background matching your request */
+    /* Edit mode dropdowns: fully transparent, 2-column grid */
     .layer-controls-section {
         position: relative !important;
         top: auto !important; right: auto !important; transform: none !important;
         width: 100% !important;
         background: transparent !important;
         border: none !important;
-        padding: 1rem 0 !important;
+        padding: 0.5rem 0 !important;
         margin-top: auto !important;
-        margin-bottom: 1rem !important;
+        margin-bottom: 0.5rem !important;
     }
     
     .section-header h3 {
         color: #ffffff !important;
         text-shadow: 0 2px 6px rgba(0,0,0,0.9);
-        font-size: 1.1rem;
-        margin-bottom: 0.5rem;
+        font-size: 1rem;
+        margin-bottom: 0.4rem;
     }
 
     .layer-controls {
         display: grid !important;
         grid-template-columns: repeat(2, 1fr) !important;
-        gap: 8px !important;
+        gap: 6px !important;
     }
     
     .layer-control {
-        background: rgba(0, 0, 0, 0.45);
+        background: rgba(0, 0, 0, 0.5);
         border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 8px;
-        padding: 0.4rem;
+        border-radius: 6px;
+        padding: 0.35rem 0.5rem;
         backdrop-filter: blur(6px);
         -webkit-backdrop-filter: blur(6px);
     }
 
     .layer-label {
-        font-size: 0.6rem !important;
+        font-size: 0.55rem !important;
         color: #cccccc !important;
         text-shadow: 0 1px 2px rgba(0,0,0,0.9);
     }
@@ -261,14 +258,14 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
     .layer-select {
         background: transparent !important;
         font-size: 0.7rem !important;
-        padding: 0.2rem 0 !important;
+        padding: 0.1rem 0 !important;
         border: none !important;
         border-bottom: 1px solid rgba(255,255,255,0.3) !important;
         color: #ffffff !important;
         text-shadow: 0 1px 3px rgba(0,0,0,0.9);
     }
     
-    /* Smooth opacity fade for playing state without layout height collapse */
+    /* Clean playing state toggle without height/reflow collapse */
     body.playing .layer-controls-section {
         opacity: 0 !important;
         pointer-events: none !important;
@@ -277,17 +274,16 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         height: 0 !important;
         overflow: hidden !important;
         padding: 0 !important;
-        transition: opacity 0.5s ease;
     }
 
-    /* Player Dock: fully transparent background, perfectly visible at bottom */
+    /* Player Dock */
     .player {
         position: relative !important;
         bottom: auto !important; left: auto !important; transform: none !important;
         width: 100% !important;
         background: transparent !important;
         border: none !important;
-        padding: 0.5rem 0 !important;
+        padding: 0.25rem 0 !important;
         margin-top: auto !important;
     }
     
@@ -297,11 +293,11 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
 
     .player-controls {
         justify-content: center !important;
-        gap: 2rem !important;
-        margin-bottom: 0.75rem !important;
+        gap: 1.5rem !important;
+        margin-bottom: 0.5rem !important;
     }
-    .control-btn svg { width: 22px; height: 22px; }
-    #icon-play, #icon-pause { width: 36px; height: 36px; }
+    .control-btn svg { width: 20px; height: 20px; }
+    #icon-play, #icon-pause { width: 32px; height: 32px; }
 
     .progress-bar {
         background: rgba(255, 255, 255, 0.3) !important;
@@ -314,7 +310,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         border-radius: 3px !important;
     }
 
-    /* Top Left Pure Text Tags (Zero Background, Fully Visible when playing) */
+    /* Top Left Pure Text Tags */
     .tags-container {
         position: relative !important;
         top: auto !important; left: auto !important; transform: none !important;
@@ -322,30 +318,29 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         display: flex !important;
         flex-direction: column !important;
         gap: 4px !important;
-        padding: 0.5rem 0 0 0 !important;
+        padding: 0.25rem 0 0 0 !important;
         margin-bottom: auto !important;
         opacity: 0;
         visibility: hidden;
-        transition: opacity 0.5s ease;
     }
     body.playing .tags-container {
         opacity: 1 !important;
         visibility: visible !important;
     }
     .minimal-tag {
-        font-size: 0.7rem !important;
+        font-size: 0.65rem !important;
         padding: 0 !important;
         border: none !important;
         background: transparent !important;
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
         text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.8) !important;
-        letter-spacing: 1.5px !important;
+        letter-spacing: 1px !important;
     }
     
     .overlay-btn {
-        top: 1.25rem !important;
-        right: 1.25rem !important;
+        top: 1rem !important;
+        right: 1rem !important;
         z-index: 50 !important;
         background: rgba(0,0,0,0.4);
         padding: 6px;
