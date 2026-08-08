@@ -8,11 +8,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,600&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Background (Strings full screen) -->
+    <!-- Background (Full screen strings) -->
     <div id="player-bg" class="background-container"></div>
 
-    <!-- Artwork (Centered floating layers) -->
-    <div id="layer-container" class="artwork-container"></div>
+    <!-- Artwork (Grouped floating container for safe animation) -->
+    <div class="artwork-wrapper">
+        <div id="layer-container" class="artwork-container"></div>
+    </div>
 
     <!-- UI Overlay -->
     <div id="ui-layer" class="ui-container">
@@ -28,6 +30,7 @@
                     </p>
                     <button id="learnMoreBtn" class="text-link">Learn more</button>
                 </div>
+                <!-- This button unlocks Safari Audio instantly -->
                 <button id="enterBtn" class="primary-btn">Enter the Canvas</button>
                 <div class="artists-section">
                     <div id="artists-container" class="gateway-tags"></div>
