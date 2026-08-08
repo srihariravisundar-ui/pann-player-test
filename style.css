@@ -7,7 +7,7 @@
     --panel-bg: #0a0a0a;
     --border-color: rgba(255, 255, 255, 0.08);
     --text-primary: #ffffff;
-    --text-secondary: #ffffff; /* Updated to pure white for better visibility */
+    --text-secondary: #ffffff; 
 }
 
 body {
@@ -22,22 +22,14 @@ body {
 
 h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif; font-weight: 400; letter-spacing: 0.5px; }
 
-/* --- Page Transitions --- */
 .page-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; transition: opacity 0.8s ease; }
 .page-container.active { opacity: 1; pointer-events: all; z-index: 10; }
 .hidden { display: none !important; }
 
 /* --- Gateway Page & Dynamic Background --- */
 #gateway-page { position: relative; display: flex; align-items: center; justify-content: center; text-align: center; padding: 2rem; }
-
 .gateway-bg { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; overflow: hidden; z-index: 1; }
-.gateway-overlay { 
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-    /* Updated gradient based on your spec */
-    background: radial-gradient(circle at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%); 
-    z-index: 2; pointer-events: none; 
-}
-
+.gateway-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%); z-index: 2; pointer-events: none; }
 .gateway-content { position: relative; z-index: 3; max-width: 800px; display: flex; flex-direction: column; gap: 2.5rem; align-items: center; }
 .gateway-content h1 { font-size: 5rem; letter-spacing: 4px; }
 
@@ -46,11 +38,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .text-link-btn { background: none; border: none; color: var(--text-secondary); font-family: 'Inter', sans-serif; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; border-bottom: 1px solid transparent; transition: all 0.3s ease; padding: 5px 0; margin-top: 10px; }
 .text-link-btn:hover { color: var(--text-primary); border-color: var(--text-primary); }
 
-.gateway-btn {
-    background: var(--text-primary); color: var(--bg-color); border: none; padding: 1rem 3rem;
-    font-family: 'Inter', sans-serif; text-transform: uppercase; letter-spacing: 2px;
-    font-size: 0.9rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: background 0.3s ease;
-}
+.gateway-btn { background: var(--text-primary); color: var(--bg-color); border: none; padding: 1rem 3rem; font-family: 'Inter', sans-serif; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: background 0.3s ease; }
 .gateway-btn:hover { background: rgba(255,255,255,0.8); }
 
 .artists-section { margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 2rem; width: 100%; }
@@ -59,18 +47,13 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .center-tags::-webkit-scrollbar { width: 4px; }
 .center-tags::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
 
-/* --- Floating Background Elements & Cover Layer (Applies to Gateway & Player) --- */
-/* Changed to % so it dynamically fits whatever container it is inside (75vh box or full 100vw screen) */
-.bg-layer-cover { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.6; z-index: 1; }
-.floating-layer { 
-    position: absolute; 
-    top: 50%; left: 50%; 
-    width: 100%; height: 100%; 
-    object-fit: contain; 
-    opacity: 0.5;
-    z-index: 2; pointer-events: none; 
-    animation: floatVertical 12s ease-in-out infinite alternate; 
-}
+/* --- Fully Opaque Cinematic Artwork Layers --- */
+.layerImage { position: absolute; opacity: 0; transition: opacity 1.2s ease; }
+.layerImage.active { opacity: 1; }
+
+.bg-layer-cover { top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+.floating-layer { top: 50%; left: 50%; width: 100%; height: 100%; object-fit: contain; z-index: 2; pointer-events: none; animation: floatVertical 12s ease-in-out infinite alternate; }
+
 @keyframes floatVertical {
     0% { transform: translate(-50%, -48%); }
     100% { transform: translate(-50%, -52%); }
@@ -103,16 +86,34 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .status-dot.loading { opacity: 0.4; animation: pulse 1s infinite; }
 .status-dot.error { background: #ff4444; }
 
-.player-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 2rem; }
-#playPauseBtn { grid-column: 1 / -1; padding: 1rem; font-size: 1rem; font-weight: 600; }
-.control-btn { padding: 0.8rem 0; background: transparent; border: 1px solid var(--border-color); color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; border-radius: 4px; cursor: pointer; transition: all 0.3s ease; }
-.control-btn:hover { border-color: rgba(255, 255, 255, 0.4); }
-.control-btn.primary { background: var(--text-primary); color: var(--bg-color); border: none; }
-.control-btn.primary:hover { background: rgba(255, 255, 255, 0.8); }
+/* Icon-Based Controls */
+.player-controls { display: flex; justify-content: space-between; gap: 0.5rem; margin-bottom: 2rem; }
+.control-btn { 
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; border: 1px solid var(--border-color); color: var(--text-primary); 
+    border-radius: 50%; cursor: pointer; transition: all 0.3s ease; 
+}
+.control-btn:hover { border-color: rgba(255, 255, 255, 0.4); transform: scale(1.05); }
 
-.time-display { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.5rem; }
-.progress-bar { width: 100%; height: 1px; background: var(--border-color); cursor: pointer; position: relative; }
-.progress-fill { height: 100%; background: var(--text-primary); width: 0%; transition: width 0.1s linear; }
+.control-btn.primary { width: 64px; height: 64px; background: var(--text-primary); color: var(--bg-color); border: none; }
+.control-btn.primary:hover { background: rgba(255, 255, 255, 0.8); }
+.control-btn.secondary { width: 48px; height: 48px; }
+
+/* Thick Interactive Progress Bar */
+.time-display { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.75rem; }
+.progress-bar { 
+    width: 100%; height: 12px; background: rgba(255,255,255,0.15); 
+    cursor: pointer; position: relative; border-radius: 6px; 
+}
+.progress-fill { height: 100%; background: var(--text-primary); width: 0%; border-radius: 6px; position: relative; }
+.progress-fill::after { 
+    content: ''; position: absolute; right: -6px; top: 50%; 
+    transform: translateY(-50%) scale(0); width: 14px; height: 14px; 
+    background: #fff; border-radius: 50%; box-shadow: 0 0 8px rgba(0,0,0,0.8); 
+    transition: transform 0.2s ease; 
+}
+.progress-bar:hover .progress-fill::after, 
+.progress-bar:active .progress-fill::after { transform: translateY(-50%) scale(1); }
 
 .loading-section { margin-top: 1rem; }
 .loading-text { font-size: 0.7rem; color: var(--text-secondary); text-align: center; margin-bottom: 0.5rem; }
@@ -133,47 +134,30 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text-primary); color: var(--bg-color); padding: 1rem 2rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; z-index: 100; transition: opacity 0.3s; }
 
-
 /* ====================================================
-   THE CINEMATIC "PLAYING" STATE
+   THE CINEMATIC "PLAYING" STATE (MINIMIZED DOCK)
    ==================================================== */
 body.playing #artwork {
-    width: 100vw;
-    height: 100vh;
-    max-width: none;
-    max-height: none;
-    border-radius: 0;
+    width: 100vw; height: 100vh; max-width: none; max-height: none; border-radius: 0;
 }
 
 body.playing .control-section {
-    position: fixed;
-    bottom: 2rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    max-width: 600px;
-    height: auto;
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    background: rgba(10, 10, 10, 0.5); /* Glassmorphism transparency */
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    padding: 1.5rem 2rem;
-    gap: 1.5rem;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+    width: 90%; max-width: 550px; height: auto;
+    border: 1px solid var(--border-color); border-radius: 24px;
+    background: rgba(10, 10, 10, 0.5); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    padding: 1.5rem 2rem; gap: 1rem; box-shadow: 0 20px 50px rgba(0,0,0,0.8);
 }
 
-/* Hide clutter during playback */
+/* Hide clutter */
 body.playing .player-header,
 body.playing .loading-section,
-body.playing .section-header {
-    display: none !important;
-}
+body.playing .section-header { display: none !important; }
 
-body.playing .player-controls {
-    margin-bottom: 1rem;
-}
-
+/* Reformat for sleek dock */
+body.playing .player-controls { margin-bottom: 1rem; justify-content: center; gap: 1.5rem; }
+body.playing .tags-container { display: flex; justify-content: center; margin-top: 0.5rem; gap: 6px; }
+body.playing .minimal-tag { font-size: 0.65rem; padding-right: 6px; border-right: 1px solid rgba(255,255,255,0.1); }
 
 /* --- Responsive Adaptations --- */
 @media (max-width: 1024px) {
@@ -187,22 +171,8 @@ body.playing .player-controls {
     .artwork-section { height: 45dvh; flex: none; }
     #artwork { width: 85vw; height: 85vw; }
     .control-section { width: 100%; flex: 1; border-left: none; border-top: 1px solid var(--border-color); padding: 1.5rem; }
-    
     .gateway-content h1 { font-size: 3.5rem; letter-spacing: 2px; }
     .description { font-size: 0.85rem; line-height: 1.6; }
-    .gateway-btn { padding: 0.8rem 2rem; font-size: 0.8rem; }
 
-    body.playing .control-section {
-        bottom: 1rem;
-        width: 95%;
-        padding: 1rem;
-        border-radius: 16px;
-    }
-}
-
-@media (max-width: 480px) {
-    .control-btn { font-size: 0.65rem; padding: 0.8rem 0.2rem; }
-    #playPauseBtn { font-size: 0.9rem; padding: 0.8rem; }
-    .gateway-content h1 { font-size: 2.8rem; }
-    .gateway-content { gap: 1.5rem; }
+    body.playing .control-section { bottom: 1rem; width: 95%; padding: 1.25rem 1rem; border-radius: 20px; }
 }
