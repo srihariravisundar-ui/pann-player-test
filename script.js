@@ -195,7 +195,6 @@
         }
     }
 
-    // Artifact-Free Sync Engine
     function enforceSync() {
         const nodes = Object.values(state.audioNodes).filter(n => !n.paused);
         if (nodes.length <= 1) return;
@@ -228,6 +227,7 @@
         });
 
         state.isPlaying = true;
+        document.body.classList.add('playing'); // Triggers cinematic full screen!
         UI.playPauseBtn.textContent = "Pause";
         toggleEditMode(false);
         setStatus("Playing", "ready");
@@ -241,6 +241,7 @@
     function pauseAudio() {
         Object.values(state.audioNodes).forEach(node => node.pause());
         state.isPlaying = false;
+        document.body.classList.remove('playing'); // Reverts to edit mode shape
         UI.playPauseBtn.textContent = "Play";
         if (state.syncInterval) clearInterval(state.syncInterval);
         setStatus("Paused", "ready");
@@ -254,6 +255,7 @@
             node.playbackRate = 1.0;
         });
         state.isPlaying = false;
+        document.body.classList.remove('playing'); // Reverts to edit mode shape
         UI.playPauseBtn.textContent = "Play";
         UI.progressFill.style.width = '0%';
         UI.currentTimeEl.textContent = '0:00';
@@ -274,7 +276,7 @@
         animationFrameId = requestAnimationFrame(updateLoop);
     }
 
-    // --- UI Logic & State ---
+    // --- VISUAL ENGINE UPDATE (Applies Floating Logic to the inner Player too!) ---
     function updateVisuals() {
         UI.artworkDiv.querySelectorAll('.layerImage').forEach(el => el.remove());
         UI.gatewayBg.innerHTML = '';
@@ -283,28 +285,27 @@
             if (cid) {
                 const url = toGatewayURL(cid);
                 
-                // Apply to main player canvas
-                const img1 = new Image();
-                img1.className = 'layerImage active';
-                img1.src = url;
-                UI.artworkDiv.appendChild(img1);
-
-                // Apply dynamic logic to the Gateway Background
-                const bgImg = new Image();
-                bgImg.src = url;
+                const imgPlayer = new Image();
+                const imgGateway = new Image();
+                imgPlayer.src = url;
+                imgGateway.src = url;
                 
-                // Check if this is the String layer
+                // If it's a string, it becomes the full background cover in both modes!
                 if (layerId.toLowerCase().includes('string')) {
-                    bgImg.className = 'bg-layer-cover active';
+                    imgPlayer.className = 'bg-layer-cover active';
+                    imgGateway.className = 'bg-layer-cover active';
                 } else {
-                    bgImg.className = 'floating-layer active';
+                    // Otherwise, it breathes in the center
+                    imgPlayer.className = 'floating-layer active';
+                    imgGateway.className = 'floating-layer active';
                     
-                    // Allow layers to slightly stagger their vertical breathing animation
                     const delay = Math.random() * -15; 
-                    bgImg.style.animationDelay = `${delay}s`;
+                    imgPlayer.style.animationDelay = `${delay}s`;
+                    imgGateway.style.animationDelay = `${delay}s`;
                 }
                 
-                UI.gatewayBg.appendChild(bgImg);
+                UI.artworkDiv.appendChild(imgPlayer);
+                UI.gatewayBg.appendChild(imgGateway);
             }
         });
     }
@@ -404,7 +405,6 @@
                 }
             });
 
-            // Apply URL state OR randomize
             if (!applyURLState()) {
                 UI.controls.querySelectorAll('.layer-select').forEach(select => {
                     select.selectedIndex = Math.floor(Math.random() * select.options.length);
