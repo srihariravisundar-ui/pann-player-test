@@ -110,8 +110,6 @@
     }
 
     function toggleEditMode(isEditing) {
-        // UI visibility is completely managed by the CSS body.playing class now.
-        // We only need to generate the tracklist text tags when playback starts.
         if (!isEditing) {
             UI.tagsContainer.innerHTML = '';
             UI.controls.querySelectorAll('.layer-select').forEach(select => {
@@ -276,32 +274,26 @@
         animationFrameId = requestAnimationFrame(updateLoop);
     }
 
-    // --- VISUAL ENGINE (Clean Crossfade & String Background Logic) ---
     function updateVisuals() {
-        // Collect existing elements
         const oldPlayerLayers = UI.layerContainer.querySelectorAll('.layerImage');
         const oldPlayerBgLayers = UI.playerBg.querySelectorAll('.layerImage');
         const oldGatewayLayers = UI.gatewayBg.querySelectorAll('.layerImage');
 
-        // Smoothly fade out and delete
         oldPlayerLayers.forEach(el => { el.classList.remove('active'); setTimeout(() => el.remove(), 1200); });
         oldPlayerBgLayers.forEach(el => { el.classList.remove('active'); setTimeout(() => el.remove(), 1200); });
         oldGatewayLayers.forEach(el => { el.classList.remove('active'); setTimeout(() => el.remove(), 1200); });
 
-        // Generate new layers
         Object.entries(state.selections.visuals).forEach(([layerId, cid]) => {
             if (cid) {
                 const url = toGatewayURL(cid);
                 
                 if (layerId.toLowerCase().includes('string')) {
-                    // String layers go to the full-screen background divs
                     const imgG = new Image(); imgG.src = url; imgG.className = 'layerImage bg-layer-cover';
                     const imgP = new Image(); imgP.src = url; imgP.className = 'layerImage bg-layer-cover';
                     UI.gatewayBg.appendChild(imgG);
                     UI.playerBg.appendChild(imgP);
                     setTimeout(() => { imgG.classList.add('active'); imgP.classList.add('active'); }, 50);
                 } else {
-                    // Other layers go to the floating central containers
                     const imgG = new Image(); imgG.src = url; imgG.className = 'layerImage floating-layer';
                     const imgP = new Image(); imgP.src = url; imgP.className = 'layerImage floating-layer';
                     
@@ -416,7 +408,6 @@
                 }
             });
 
-            // Apply URL state OR randomize
             if (!applyURLState()) {
                 UI.controls.querySelectorAll('.layer-select').forEach(select => {
                     select.selectedIndex = Math.floor(Math.random() * select.options.length);
