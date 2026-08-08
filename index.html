@@ -35,6 +35,7 @@
         <div class="container">
             <div class="artwork-section">
                 <div id="artwork">
+                    <div id="layer-container" style="position: absolute; top:0; left:0; width:100%; height:100%;"></div>
                     <div id="loading-overlay">
                         <div class="loading-spinner"></div>
                         <div id="loading-text">Loading Canvas...</div>
@@ -56,10 +57,19 @@
                     </div>
 
                     <div class="player-controls">
-                        <button id="playPauseBtn" class="control-btn primary">Play</button>
-                        <button id="stopBtn" class="control-btn secondary">Stop</button>
-                        <button id="randomizeBtn" class="control-btn secondary">Shuffle</button>
-                        <button id="saveBtn" class="control-btn secondary" title="Copy Link to Save Playlist">Save</button>
+                        <button id="playPauseBtn" class="control-btn primary">
+                            <svg id="icon-play" viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                            <svg id="icon-pause" class="hidden" viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                        </button>
+                        <button id="stopBtn" class="control-btn secondary" title="Stop">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>
+                        </button>
+                        <button id="randomizeBtn" class="control-btn secondary" title="Shuffle Mix">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+                        </button>
+                        <button id="saveBtn" class="control-btn secondary" title="Copy Link to Save Playlist">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>
+                        </button>
                     </div>
 
                     <div class="progress-section">
