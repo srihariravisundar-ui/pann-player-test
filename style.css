@@ -170,7 +170,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
 }
 
 /* ====================================================
-   STABLE MOBILE-FIRST FLEX ARCHITECTURE (No Absolute Traps)
+   FOOLPROOF MOBILE LAYOUT (Zero Absolute Traps, Fully Touchable)
    ==================================================== */
 @media (max-width: 768px) {
     body {
@@ -189,7 +189,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         overflow-y: auto !important;
     }
 
-    /* Artwork stays fixed in the background natively */
+    /* Artwork is forced into a true background layer with zero pointer blocking */
     .artwork-section {
         position: fixed !important;
         inset: 0 !important;
@@ -200,7 +200,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         pointer-events: none !important;
     }
 
-    /* Control section flows naturally as a scrollable flex container */
+    /* Control section is now fully relative, scrollable, and 100% touchable immediately */
     .control-section {
         position: relative !important;
         width: 100vw !important;
@@ -218,7 +218,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         pointer-events: auto !important;
     }
 
-    /* Edit mode dropdowns: fully transparent background matching your request */
+    /* Edit mode dropdowns: fully transparent background, perfectly aligned 2-column grid */
     .layer-controls-section {
         position: relative !important;
         top: auto !important; right: auto !important; transform: none !important;
@@ -233,42 +233,41 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
     .section-header h3 {
         color: #ffffff !important;
         text-shadow: 0 2px 6px rgba(0,0,0,0.9);
-        font-size: 1.2rem;
-        margin-bottom: 0.75rem;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
     }
 
     .layer-controls {
         display: grid !important;
         grid-template-columns: repeat(2, 1fr) !important;
-        gap: 10px !important;
+        gap: 8px !important;
     }
     
     .layer-control {
         background: rgba(0, 0, 0, 0.45);
         border: 1px solid rgba(255, 255, 255, 0.15);
         border-radius: 8px;
-        padding: 0.5rem;
+        padding: 0.4rem;
         backdrop-filter: blur(6px);
         -webkit-backdrop-filter: blur(6px);
     }
 
     .layer-label {
-        font-size: 0.65rem !important;
+        font-size: 0.6rem !important;
         color: #cccccc !important;
         text-shadow: 0 1px 2px rgba(0,0,0,0.9);
     }
 
     .layer-select {
         background: transparent !important;
-        font-size: 0.75rem !important;
-        padding: 0.3rem 0 !important;
+        font-size: 0.7rem !important;
+        padding: 0.2rem 0 !important;
         border: none !important;
         border-bottom: 1px solid rgba(255,255,255,0.3) !important;
         color: #ffffff !important;
         text-shadow: 0 1px 3px rgba(0,0,0,0.9);
     }
     
-    /* FIX: When playing on mobile, smoothly fade out the dropdowns instead of display:none collapsing */
     body.playing .layer-controls-section {
         opacity: 0 !important;
         pointer-events: none !important;
@@ -279,14 +278,14 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         padding: 0 !important;
     }
 
-    /* Player Dock: fully transparent background, perfectly visible */
+    /* Player Dock: fully transparent background, perfectly visible at bottom */
     .player {
         position: relative !important;
         bottom: auto !important; left: auto !important; transform: none !important;
         width: 100% !important;
         background: transparent !important;
         border: none !important;
-        padding: 1rem 0 !important;
+        padding: 0.5rem 0 !important;
         margin-top: auto !important;
     }
     
@@ -297,10 +296,10 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
     .player-controls {
         justify-content: center !important;
         gap: 2rem !important;
-        margin-bottom: 1rem !important;
+        margin-bottom: 0.75rem !important;
     }
-    .control-btn svg { width: 24px; height: 24px; }
-    #icon-play, #icon-pause { width: 40px; height: 40px; }
+    .control-btn svg { width: 22px; height: 22px; }
+    #icon-play, #icon-pause { width: 36px; height: 36px; }
 
     .progress-bar {
         background: rgba(255, 255, 255, 0.3) !important;
@@ -313,7 +312,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         border-radius: 3px !important;
     }
 
-    /* Top Left Pure Text Tags (Zero Background, Fully Visible) */
+    /* Top Left Pure Text Tags (Zero Background, Fully Visible when playing) */
     .tags-container {
         position: relative !important;
         top: auto !important; left: auto !important; transform: none !important;
