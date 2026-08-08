@@ -124,7 +124,6 @@
         throw new Error("All IPFS gateways failed to load metadata.");
     }
 
-    // --- REVERTED PERFECT SYNC ENGINE ---
     async function loadAudioStreams() {
         UI.loadingOverlay.classList.remove('hidden');
         if (UI.playPauseBtn) UI.playPauseBtn.disabled = true;
@@ -141,7 +140,7 @@
                 audio.crossOrigin = "anonymous";
                 audio.loop = true;
                 audio.preload = "auto";
-                audio.volume = 0; // Load silently
+                audio.volume = 0; 
                 
                 let attempt = 0;
 
@@ -187,12 +186,9 @@
 
         if (state.isPlaying) {
             enforceSync();
-            setTimeout(() => {
-                enforceSync();
-            }, 200);
+            setTimeout(() => { enforceSync(); }, 200);
         }
 
-        // Crossfade and cleanup
         Object.keys(state.audioNodes).forEach(oldCid => {
             if (!activeCIDs.includes(oldCid)) {
                 state.audioNodes[oldCid].pause();
@@ -217,7 +213,6 @@
             if (i === 0) return;
             const drift = node.currentTime - master.currentTime;
             
-            // Reverted tight thresholds that stopped the jittering
             if (Math.abs(drift) > 0.1) {
                 node.currentTime = master.currentTime;
             } else if (Math.abs(drift) > 0.01) {
@@ -247,7 +242,6 @@
         if (UI.iconPause) UI.iconPause.classList.remove('hidden');
         renderTags();
 
-        // Allow sync before raising volume
         setTimeout(() => {
             enforceSync();
             nodes.forEach(node => { node.volume = 1; });
@@ -294,17 +288,17 @@
         animationFrameId = requestAnimationFrame(updateLoop);
     }
 
-    // --- REVERTED VISUAL ENGINE ---
-    function updateVisuals() {
+    // --- FIX: Strict Z-Index Locking & Layer Isolation ---
+    function updateVisuals(changedLayerId = null) {
         if (!state.metadata) return;
         const visuals = (state.metadata.layout?.layers || []).slice(0, 10);
 
-        // Mark existing layers to be removed safely
-        if (UI.playerBg) UI.playerBg.querySelectorAll('img').forEach(img => img.classList.add('old-layer'));
-        if (UI.layerContainer) UI.layerContainer.querySelectorAll('img').forEach(img => img.classList.add('old-layer'));
-
-        visuals.forEach((layer) => {
+        visuals.forEach((layer, index) => {
             const layerId = layer.id;
+            
+            // If a specific layer was selected, ONLY update that layer to prevent flashing
+            if (changedLayerId && changedLayerId !== layerId) return;
+
             const cid = state.selections.visuals[layerId];
             if (!cid) return;
 
@@ -314,10 +308,17 @@
             const isString = layerId.toLowerCase().includes('string');
             const targetContainer = isString ? UI.playerBg : UI.layerContainer;
 
+            // Mark the current active image for this layer as old
+            const existingImages = targetContainer.querySelectorAll(`img[data-layer-id="${layerId}"]`);
+            existingImages.forEach(img => img.classList.add('old-layer'));
+
             const img = new Image();
-            // Assign the correct classes (bg-layer-cover = Cover, layerImage = Contain)
             img.className = isString ? 'bg-layer-cover' : 'layerImage';
             img.dataset.layerId = layerId;
+            
+            // FIX: Hardcode the stacking order based on the master JSON index.
+            // This guarantees layers never jump to the front when changed.
+            img.style.zIndex = index; 
 
             let attempt = 0;
             img.onload = () => {
@@ -327,7 +328,7 @@
                     img.classList.add('layer-visible');
                 });
                 
-                // Clear the old ones specifically for this layer
+                // Remove ONLY the old image for this specific layer
                 const oldImages = targetContainer.querySelectorAll(`img[data-layer-id="${layerId}"].old-layer`);
                 oldImages.forEach(oldImg => {
                     oldImg.classList.remove('layer-visible');
@@ -339,11 +340,13 @@
         });
     }
 
-    async function handleChange(id, visualCid, audioCid) {
-        state.selections.visuals[id] = visualCid;
-        state.selections.audio[id] = audioCid;
+    async function handleChange(layerId, visualCid, audioCid) {
+        state.selections.visuals[layerId] = visualCid;
+        state.selections.audio[layerId] = audioCid;
         renderTags(); 
-        updateVisuals(); 
+        
+        // Pass the layerId so we ONLY update the changed layer
+        updateVisuals(layerId); 
         await loadAudioStreams(); 
     }
 
@@ -399,7 +402,7 @@
             });
 
             renderTags();
-            updateVisuals();
+            updateVisuals(); // Updates all on initial load
             await loadAudioStreams(); 
 
         } catch (e) {
@@ -446,7 +449,7 @@
             });
 
             renderTags();
-            updateVisuals();
+            updateVisuals(); // Updates all on mix
             await loadAudioStreams();
         });
     }
