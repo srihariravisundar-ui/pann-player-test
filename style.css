@@ -9,7 +9,7 @@
 }
 
 body {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Playfair Display', sans-serif;
     background: var(--bg-color);
     color: var(--text-primary);
     overflow: hidden;
@@ -53,16 +53,15 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .gateway-tags { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-height: 30vh; overflow-y: auto; padding-bottom: 1rem; }
 .gateway-tags::-webkit-scrollbar { width: 4px; }
 .gateway-tags::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
-.gateway-tags .minimal-tag { color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding-right: 8px; border-right: 1px solid var(--border-color); text-shadow: 0 2px 8px rgba(0,0,0,0.9); opacity: 0.9; }
-.gateway-tags .minimal-tag:last-child { border-right: none; }
+.gateway-tags .minimal-tag { 
+    color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; 
+    letter-spacing: 1px; padding: 6px 14px; background: rgba(0,0,0,0.4); 
+    border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); 
+}
 
 /* --- Fully Opaque Cinematic Artwork Layers --- */
-.layerImage { 
-    position: absolute; opacity: 0; transition: opacity 1.2s ease; 
-    will-change: opacity, transform; transform: translateZ(0); 
-}
+.layerImage { position: absolute; opacity: 0; transition: opacity 1.2s ease; will-change: opacity, transform; transform: translateZ(0); }
 .layerImage.active { opacity: 1; }
-
 .bg-layer-cover { top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; opacity: 0.8; z-index: 1; }
 .floating-layer { top: 50%; left: 50%; width: 100%; height: 100%; object-fit: contain; z-index: 2; pointer-events: none; animation: floatVertical 12s ease-in-out infinite alternate; }
 
@@ -71,7 +70,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
     100% { transform: translate(-50%, -52%) translateZ(0); }
 }
 
-/* --- Pure Transparent Player Container --- */
+/* --- Player Container --- */
 .container { position: relative; height: 100%; width: 100%; overflow: hidden; }
 
 .artwork-section { 
@@ -84,19 +83,17 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 #loading-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 1rem; z-index: 10; }
 .loading-spinner { width: 24px; height: 24px; border: 1px solid rgba(255,255,255,0.2); border-top: 1px solid var(--text-primary); border-radius: 50%; animation: spin 1s linear infinite; }
 
-/* --- HUD Overlays (Text Shadows for Readability) --- */
+/* --- HUD Overlays --- */
 .hud-text { text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.6); }
 
 .control-section { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 10; }
 .overlay-btn { position: absolute; top: 2rem; right: 2rem; background: transparent; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer; transition: transform 0.3s ease; pointer-events: auto; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.8)); }
 .overlay-btn:hover { transform: scale(1.1); }
 
-/* Right Side: Edit Dropdowns */
+/* Right Side: Edit Dropdowns (Desktop) */
 .layer-controls-section { 
     position: absolute; top: 50%; right: 3rem; transform: translateY(-50%); 
-    width: 320px; pointer-events: auto; 
-    transition: opacity 0.8s ease, transform 0.8s ease; 
-    will-change: opacity, transform;
+    width: 320px; pointer-events: auto; transition: opacity 0.8s ease, transform 0.8s ease; 
 }
 .section-header h3 { font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-secondary); }
 .layer-controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem 0.75rem; }
@@ -104,26 +101,26 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .layer-label { font-size: 0.7rem; color: var(--text-primary); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
 
 .layer-select { 
-    width: 100%; background: transparent; 
-    border: 1px solid rgba(255, 255, 255, 0.3); 
-    color: var(--text-secondary); padding: 0.5rem; border-radius: 4px;
+    width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(255, 255, 255, 0.2); 
+    color: var(--text-secondary); padding: 0.6rem; border-radius: 8px;
     font-size: 0.75rem; font-family: 'Inter', sans-serif; cursor: pointer; outline: none; 
-    transition: all 0.3s ease; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    transition: all 0.3s ease; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
 }
-.layer-select:hover, .layer-select:focus { border-color: rgba(255, 255, 255, 0.8); }
-.layer-select option { background: #000; color: var(--text-primary); text-shadow: none; }
+.layer-select:hover, .layer-select:focus { border-color: rgba(255, 255, 255, 0.8); background: rgba(0,0,0,0.6); }
+.layer-select option { background: #111; color: var(--text-primary); }
 
-/* Left Side: Playing Tags */
+/* Left Side: Playing Tags (Desktop Pill Design) */
 .tags-container { 
     position: absolute; top: 50%; left: 3rem; transform: translateY(-50%); 
     display: flex; flex-direction: column; gap: 0.8rem; pointer-events: auto; 
     opacity: 0; transition: opacity 0.8s ease, transform 0.8s ease; 
-    will-change: opacity, transform;
 }
 .minimal-tag { 
     color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; 
-    letter-spacing: 2px; text-shadow: 0 2px 8px rgba(0,0,0,0.9); opacity: 0.9;
+    letter-spacing: 2px; padding: 8px 16px; background: rgba(0,0,0,0.5); 
+    border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); 
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    width: fit-content;
 }
 
 /* Bottom Center: Transport Controls & Scrubber */
@@ -138,27 +135,14 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .status-dot { width: 4px; height: 4px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 5px #fff; }
 
 .player-controls { display: flex; justify-content: center; align-items: center; gap: 2rem; margin-bottom: 1.5rem; width: 100%; }
-.control-btn { 
-    background: transparent; border: none; color: var(--text-primary); 
-    cursor: pointer; transition: transform 0.3s ease, color 0.3s ease; 
-    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.8));
-    will-change: transform;
-}
+.control-btn { background: transparent; border: none; color: var(--text-primary); cursor: pointer; transition: transform 0.3s ease, color 0.3s ease; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.8)); }
 .control-btn:hover { transform: scale(1.15); color: #fff; }
 
 .progress-section { width: 100%; }
 .time-display { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.75rem; }
-.progress-bar { 
-    width: 100%; height: 8px; background: rgba(255,255,255,0.25); 
-    cursor: pointer; position: relative; border-radius: 4px; 
-    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-}
+.progress-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.25); cursor: pointer; position: relative; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
 .progress-fill { height: 100%; background: var(--text-primary); width: 0%; border-radius: 4px; position: relative; box-shadow: 0 0 10px rgba(255,255,255,0.3); }
-.progress-fill::after { 
-    content: ''; position: absolute; right: -6px; top: 50%; transform: translateY(-50%) scale(0); 
-    width: 16px; height: 16px; background: #fff; border-radius: 50%; box-shadow: 0 2px 10px rgba(0,0,0,0.8); 
-    transition: transform 0.2s ease; 
-}
+.progress-fill::after { content: ''; position: absolute; right: -6px; top: 50%; transform: translateY(-50%) scale(0); width: 16px; height: 16px; background: #fff; border-radius: 50%; box-shadow: 0 2px 10px rgba(0,0,0,0.8); transition: transform 0.2s ease; }
 .progress-bar:hover .progress-fill::after, .progress-bar:active .progress-fill::after { transform: translateY(-50%) scale(1); }
 
 .loading-section { margin-top: 1rem; width: 100%; transition: opacity 0.3s; }
@@ -178,81 +162,72 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
 
 /* --- Responsive Scaling (TV, Desktop, Tablet, Mobile) --- */
 
-/* 4K TV & Massive Monitors */
 @media (min-width: 1920px) {
     .gateway-content h1 { font-size: 7rem; }
     .description { font-size: 1.2rem; }
     .layer-controls-section { width: 400px; right: 5rem; }
     .tags-container { left: 5rem; }
-    .layer-select { font-size: 1rem; padding: 0.8rem; }
-    .layer-label { font-size: 0.9rem; }
-    .minimal-tag { font-size: 1rem; }
 }
 
-/* Standard Laptops & Small Desktops */
 @media (max-width: 1024px) {
     .layer-controls-section { right: 2rem; width: 280px; }
     .tags-container { left: 2rem; }
     .gateway-content h1 { font-size: 4rem; }
 }
 
-/* Tablets (Portrait & Landscape) */
+/* ====================================================
+   MOBILE RE-ARCHITECTURE (FLEX STACKING & SAFE AREA)
+   ==================================================== */
 @media (max-width: 768px) {
-    .gateway-content h1 { font-size: 3.5rem; letter-spacing: 2px; }
-    .description { font-size: 0.85rem; line-height: 1.6; }
     
-    /* Center the options horizontally in the lower half */
-    .layer-controls-section { 
-        top: auto; bottom: 8rem; left: 50%; right: auto; transform: translateX(-50%); 
-        width: 90%; 
+    /* 1. Add a cinematic gradient at the bottom so white text is readable over the bright artwork */
+    .control-section {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: center;
+        background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.75) 30%, rgba(0,0,0,0) 100%);
     }
-    body.playing .layer-controls-section { transform: translateX(-50%) translateY(20px); }
 
-    /* Move tags to the top safely below standard browser bars */
+    /* 2. Group the UI in a flexible bottom sheet to eliminate overlap */
+    .layer-controls-section { 
+        position: relative; top: auto; right: auto; transform: none; 
+        width: 90%; margin-bottom: 1.5rem; 
+    }
+    body.playing .layer-controls-section { display: none !important; }
+
+    /* 3. Push Player above the Android navigation bar */
+    .player { 
+        position: relative; bottom: auto; left: auto; transform: none; 
+        width: 90%; padding-bottom: max(2rem, env(safe-area-inset-bottom)); 
+    }
+
+    /* 4. Tags cluster neatly at the top of the screen */
     .tags-container { 
-        top: 10%; left: 50%; transform: translateX(-50%); 
-        width: 95%; align-items: flex-start; align-content: flex-start;
-        gap: 0.5rem; flex-direction: row; justify-content: center;
-        flex-wrap: wrap; max-height: 25vh; overflow-y: auto;
+        position: absolute; top: max(2rem, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); 
+        width: 95%; align-items: center; text-align: center; 
+        gap: 0.5rem; flex-direction: row; justify-content: center; flex-wrap: wrap; 
     }
     body.playing .tags-container { transform: translateX(-50%) translateY(0); }
     
-    .player { bottom: 2rem; width: 95%; padding: 0 1rem; }
     .overlay-btn { top: 1.5rem; right: 1.5rem; z-index: 50; }
 }
 
-/* Mobile Phones (Android/iOS) */
 @media (max-width: 480px) {
     .gateway-content h1 { font-size: 2.8rem; }
     
-    /* Ensure edit dropdowns form a clean grid above the player */
-    .layer-controls-section { bottom: 8.5rem; width: 100%; padding: 0 1.5rem; }
+    /* Keep 2 columns but ensure dropdown text is truncated neatly */
     .layer-controls { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .layer-select { font-size: 0.7rem; padding: 0.5rem; }
+    .layer-select { font-size: 0.7rem; padding: 0.6rem; }
     
-    /* SAFE AREA UX FIX: Player perfectly centered with breathing room */
-    .player { width: 100%; padding: 0 1.5rem; bottom: 2.5rem; }
+    .player { width: 92%; }
     
-    /* Space out transport icons evenly, preventing squishing */
-    .player-controls { width: 100%; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; padding: 0 0.5rem; }
+    /* Perfect spacing for transport icons */
+    .player-controls { justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; padding: 0 0.5rem; }
     .control-btn svg { width: 24px; height: 24px; }
     #icon-play, #icon-pause { width: 44px; height: 44px; }
     
-    /* Re-align Progress Bar */
-    .progress-section { width: 100%; }
-    .time-display { margin-bottom: 0.5rem; }
-    
-    /* Mobile Pill styling for Tags (Top of screen) */
-    .tags-container { top: 8%; gap: 8px; padding: 0 1rem; }
-    .minimal-tag { 
-        font-size: 0.65rem; 
-        padding: 6px 12px; 
-        border-right: none; 
-        background: rgba(0, 0, 0, 0.5); /* High contrast pill backings */
-        border-radius: 16px; 
-        border: 1px solid rgba(255,255,255,0.15);
-        text-shadow: none;
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
-    }
+    /* Tags shrink slightly to fit smaller Android screens */
+    .tags-container { top: max(1.5rem, env(safe-area-inset-top)); gap: 6px; padding: 0 1rem; }
+    .minimal-tag { font-size: 0.65rem; padding: 6px 12px; border-radius: 16px; }
 }
