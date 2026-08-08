@@ -66,7 +66,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
     100% { transform: translate(-50%, -52%) translateZ(0); }
 }
 
-/* --- Pure Transparent Player Container --- */
+/* --- Pure Transparent Player Container (Desktop) --- */
 .container { position: relative; height: 100%; width: 100%; overflow: hidden; display: flex; }
 
 .artwork-section { 
@@ -175,116 +175,116 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
 }
 
 /* ====================================================
-   ROBUST MOBILE STACK (Zero Vanishing, Zero Jitter)
+   FOOLPROOF MOBILE FLEX LAYOUT (No Absolute Collapsing)
    ==================================================== */
 @media (max-width: 768px) {
     body {
-        overflow-y: auto;
+        overflow-y: auto !important;
     }
     .container {
-        flex-direction: column;
-        height: 100dvh;
-        position: relative;
-    }
-    .artwork-section {
-        position: absolute;
-        inset: 0;
-        z-index: 1;
-    }
-    .control-section {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        z-index: 10;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
-        padding: 1.25rem;
+        height: 100dvh;
+        width: 100vw;
+        position: relative;
+        overflow-y: auto;
     }
-    .layer-controls-section, .player, .overlay-btn {
-        pointer-events: auto;
+    .artwork-section {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100dvh !important;
+        z-index: 1 !important;
+    }
+    .control-section {
+        position: relative !important;
+        width: 100vw !important;
+        min-height: 100dvh !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        padding: 1.25rem 1rem calc(1.5rem + env(safe-area-inset-bottom)) 1rem !important;
+        z-index: 10 !important;
+        background: transparent !important;
+        pointer-events: none !important;
+    }
+    .layer-controls-section, .player, .overlay-btn, .tags-container {
+        pointer-events: auto !important;
     }
     .layer-controls-section {
-        position: relative;
-        top: auto; right: auto; transform: none;
-        width: 100%;
-        background: rgba(10, 10, 10, 0.85);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 16px;
-        padding: 1rem;
-        max-height: 42vh;
-        overflow-y: auto;
-        margin-top: auto;
-        margin-bottom: 1rem;
+        position: relative !important;
+        top: auto !important; right: auto !important; transform: none !important;
+        width: 100% !important;
+        background: rgba(10, 10, 10, 0.85) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 16px !important;
+        padding: 1rem !important;
+        margin-top: auto !important;
+        margin-bottom: 1rem !important;
     }
     .layer-controls {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
     }
     .layer-select {
-        background: rgba(0,0,0,0.5);
-        font-size: 0.65rem;
-        padding: 0.4rem;
+        background: rgba(0,0,0,0.6) !important;
+        font-size: 0.7rem !important;
+        padding: 0.4rem !important;
     }
     body.playing .layer-controls-section {
         display: none !important;
     }
     .player {
-        position: relative;
-        bottom: auto; left: auto; transform: none;
-        width: 100%;
-        background: rgba(10, 10, 10, 0.85);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 16px;
-        padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom)) 1rem;
-        margin-top: auto;
+        position: relative !important;
+        bottom: auto !important; left: auto !important; transform: none !important;
+        width: 100% !important;
+        background: rgba(10, 10, 10, 0.85) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 16px !important;
+        padding: 1rem !important;
+        margin-top: auto !important;
     }
     .player-controls {
-        justify-content: space-between;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
+        justify-content: space-between !important;
+        gap: 0.5rem !important;
+        margin-bottom: 0.75rem !important;
     }
     .control-btn svg { width: 20px; height: 20px; }
     #icon-play, #icon-pause { width: 32px; height: 32px; }
 
     /* Top Left Pure Text Tags */
     .tags-container {
-        position: absolute;
-        top: 1.5rem;
-        left: 1.5rem;
-        transform: none;
-        width: auto;
-        align-items: flex-start;
-        text-align: left;
-        flex-direction: column;
-        gap: 4px;
-        padding: 0;
-        max-height: 25vh;
-        overflow-y: auto;
-        pointer-events: auto;
+        position: relative !important;
+        top: auto !important; left: auto !important; transform: none !important;
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 4px !important;
+        padding: 0 0.5rem !important;
+        margin-bottom: auto !important;
         opacity: 0;
         transition: opacity 0.5s ease;
     }
     body.playing .tags-container {
-        opacity: 1;
+        opacity: 1 !important;
     }
     .minimal-tag {
-        font-size: 0.65rem;
+        font-size: 0.65rem !important;
         padding: 0 !important;
         border: none !important;
         background: transparent !important;
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
-        text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.8);
-        letter-spacing: 1px;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.8) !important;
+        letter-spacing: 1px !important;
     }
     .overlay-btn {
-        top: 1.5rem;
-        right: 1.5rem;
-        z-index: 50;
+        top: 1.25rem !important;
+        right: 1.25rem !important;
+        z-index: 50 !important;
     }
 }
