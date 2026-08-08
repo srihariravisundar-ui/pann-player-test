@@ -31,8 +31,10 @@ h1, h2, h3, .section-title, .layer-label { font-family: 'Playfair Display', seri
 .gateway-content h1 { font-size: clamp(3.5rem, 8vw, 5rem); letter-spacing: 4px; text-shadow: 0 4px 20px rgba(0,0,0,0.9); }
 .description-container { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
 .description { font-size: 0.95rem; color: #eaeaea; line-height: 1.8; text-shadow: 0 2px 10px rgba(0,0,0,0.9); }
-.text-link-btn { background: none; border: none; color: #fff; font-family: 'Inter', sans-serif; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; text-shadow: 0 2px 10px rgba(0,0,0,0.9); padding: 5px 0; margin-top: 10px; }
-.gateway-btn { background: #fff; color: #000; border: none; padding: 1rem 3rem; font-family: 'Inter', sans-serif; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: transform 0.3s; }
+.text-link-btn { background: none; border: none; color: #fff; font-family: 'Inter', sans-serif; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; border-bottom: 1px solid transparent; transition: all 0.3s ease; padding: 5px 0; margin-top: 10px; text-shadow: 0 2px 10px rgba(0,0,0,0.9); }
+.text-link-btn:hover { color: var(--text-primary); border-color: var(--text-primary); }
+
+.gateway-btn { background: #fff; color: #000; border: none; padding: 1rem 3rem; font-family: 'Inter', sans-serif; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: transform 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
 .gateway-btn:hover { transform: scale(1.05); }
 
 .artists-section { margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 2rem; width: 100%; }
@@ -69,7 +71,7 @@ h1, h2, h3, .section-title, .layer-label { font-family: 'Playfair Display', seri
     flex-direction: column;
     justify-content: space-between;
     padding: max(1.5rem, env(safe-area-inset-top)) 1.5rem max(1.5rem, env(safe-area-inset-bottom)) 1.5rem;
-    pointer-events: none; /* Ignore clicks on empty space */
+    pointer-events: none;
 }
 
 .top-zone { display: flex; justify-content: space-between; align-items: flex-start; pointer-events: auto; }
@@ -105,17 +107,21 @@ h1, h2, h3, .section-title, .layer-label { font-family: 'Playfair Display', seri
     border: none !important;
     transition: opacity 0.4s ease, visibility 0.4s ease;
 }
-.section-title { font-size: 1.1rem; margin-bottom: 1rem; color: #fff; text-align: left; }
+.section-title { font-size: 1.1rem; margin-bottom: 1rem; color: #fff; text-align: left; text-shadow: 0 2px 6px rgba(0,0,0,0.9); }
 .layer-controls {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem 1.5rem;
 }
+
+/* 100% PURE TRANSPARENT MOBILE & DESKTOP CONTROLS */
 .layer-control {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
     background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
 }
 .layer-label { font-size: 0.65rem; color: #e0e0e0; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
 .layer-select {
@@ -154,7 +160,7 @@ h1, h2, h3, .section-title, .layer-label { font-family: 'Playfair Display', seri
 
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #fff; color: #000; padding: 1rem 2rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; z-index: 100; transition: opacity 0.3s; }
 
-/* STATE TOGGLES (Never use display:none on mobile to prevent reflows) */
+/* STATE TOGGLES (Zero Layout Reflows) */
 body.playing .layer-controls-section { opacity: 0; visibility: hidden; pointer-events: none; }
 body.playing .tags-container { opacity: 1; visibility: visible; }
 
@@ -166,4 +172,12 @@ body.playing .tags-container { opacity: 1; visibility: visible; }
     .tags-container { margin-top: auto; margin-bottom: auto; }
     .layer-controls-section { margin-bottom: 2rem; }
     .overlay-btn { position: absolute; top: 2rem; right: 2rem; }
+}
+
+@media (max-width: 768px) {
+    .layer-controls { gap: 10px 8px; }
+    .layer-label { font-size: 0.6rem; }
+    .layer-select { font-size: 0.75rem; padding-bottom: 0.2rem; }
+    .control-btn svg { width: 22px; height: 22px; }
+    #icon-play, #icon-pause { width: 40px; height: 40px; }
 }
