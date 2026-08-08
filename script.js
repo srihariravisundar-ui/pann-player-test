@@ -82,7 +82,6 @@
         return IPFS_GATEWAYS.map(gw => `${gw}${hash}`);
     }
 
-    // Aggressively extracts proper names from the JSON, fixing "Option 1" bug
     function extractRealName(opt, index) {
         if (!opt) return `Option ${index + 1}`;
         if (opt.label) return opt.label;
@@ -113,50 +112,21 @@
         });
     }
 
-    function updateURLParams() {
-        const selects = UI.controls.querySelectorAll('.layer-select');
-        const indices = Array.from(selects).map(s => s.selectedIndex);
-        const param = indices.join('-');
-        const newUrl = `${window.location.pathname}?mix=${param}`;
-        window.history.replaceState({}, '', newUrl);
-    }
-
-    function loadURLParams() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const mix = urlParams.get('mix');
-        if (!mix) return false;
-        
-        const indices = mix.split('-').map(Number);
-        const selects = UI.controls.querySelectorAll('.layer-select');
-        if (indices.length !== selects.length) return false;
-
-        selects.forEach((select, i) => {
-            if (indices[i] >= 0 && indices[i] < select.options.length) {
-                select.selectedIndex = indices[i];
-                const data = JSON.parse(select.value);
-                state.selections.visuals[select.dataset.layerId] = data.visual;
-                state.selections.audio[select.dataset.layerId] = data.audio;
-            }
-        });
-        return true;
-    }
-
     async function fetchJSON() {
         for (const gateway of IPFS_GATEWAYS) {
             try {
-                const res = await fetch(`${gateway}${JSON_URL}`, { mode: 'cors' });
+                const res = await fetch(`${gateway}${JSON_URL}`);
                 if (res.ok) return await res.json();
             } catch (e) {
-                console.warn(`Gateway ${gateway} failed, trying next...`);
+                console.warn(`Gateway timeout...`);
             }
         }
         throw new Error("All IPFS gateways failed to load metadata.");
     }
 
-    async function loadAudioStreams(isBackgroundShuffle = false) {
-        if (!isBackgroundShuffle && UI.loadingOverlay) {
-            UI.loadingOverlay.classList.remove('hidden');
-        }
+    // --- REVERTED PERFECT SYNC ENGINE ---
+    async function loadAudioStreams() {
+        UI.loadingOverlay.classList.remove('hidden');
         if (UI.playPauseBtn) UI.playPauseBtn.disabled = true;
 
         const activeCIDs = Object.values(state.selections.audio).filter(cid => cid);
@@ -171,8 +141,7 @@
                 audio.crossOrigin = "anonymous";
                 audio.loop = true;
                 audio.preload = "auto";
-                audio.volume = isBackgroundShuffle ? 0 : 1; 
-                audio.preservesPitch = false; // Prevents popping artifacts
+                audio.volume = 0; // Load silently
                 
                 let attempt = 0;
 
@@ -216,23 +185,27 @@
             }
         });
 
-        if (state.isPlaying && !isBackgroundShuffle) {
+        if (state.isPlaying) {
             enforceSync();
+            setTimeout(() => {
+                enforceSync();
+            }, 200);
         }
 
+        // Crossfade and cleanup
         Object.keys(state.audioNodes).forEach(oldCid => {
             if (!activeCIDs.includes(oldCid)) {
                 state.audioNodes[oldCid].pause();
                 state.audioNodes[oldCid].src = "";
                 delete state.audioNodes[oldCid];
-            } else if (!isBackgroundShuffle) {
+            } else {
                 state.audioNodes[oldCid].volume = 1; 
             }
         });
 
         if (UI.totalTimeEl) UI.totalTimeEl.textContent = formatTime(state.duration);
         if (UI.playPauseBtn) UI.playPauseBtn.disabled = false;
-        if (!isBackgroundShuffle && UI.loadingOverlay) UI.loadingOverlay.classList.add('hidden');
+        UI.loadingOverlay.classList.add('hidden');
     }
 
     function enforceSync() {
@@ -244,10 +217,11 @@
             if (i === 0) return;
             const drift = node.currentTime - master.currentTime;
             
-            if (Math.abs(drift) > 0.15) {
+            // Reverted tight thresholds that stopped the jittering
+            if (Math.abs(drift) > 0.1) {
                 node.currentTime = master.currentTime;
-            } else if (Math.abs(drift) > 0.02) {
-                node.playbackRate = master.playbackRate - (drift * 0.4); 
+            } else if (Math.abs(drift) > 0.01) {
+                node.playbackRate = master.playbackRate - (drift * 0.5); 
             } else {
                 node.playbackRate = master.playbackRate;
             }
@@ -261,13 +235,10 @@
         const timeToSet = targetTime !== null ? targetTime : (nodes[0].currentTime || 0);
         
         nodes.forEach(node => { 
+            node.volume = 0;
             node.currentTime = timeToSet; 
             const p = node.play();
-            if (p !== undefined) {
-                p.catch(err => {
-                    console.warn("Safari Audio Autoplay restriction caught:", err);
-                });
-            }
+            if (p !== undefined) { p.catch(err => console.warn(err)); }
         });
 
         state.isPlaying = true;
@@ -275,10 +246,15 @@
         if (UI.iconPlay) UI.iconPlay.classList.add('hidden');
         if (UI.iconPause) UI.iconPause.classList.remove('hidden');
         renderTags();
-        updateURLParams();
+
+        // Allow sync before raising volume
+        setTimeout(() => {
+            enforceSync();
+            nodes.forEach(node => { node.volume = 1; });
+        }, 250);
 
         if (state.syncInterval) clearInterval(state.syncInterval);
-        state.syncInterval = setInterval(enforceSync, 600); 
+        state.syncInterval = setInterval(enforceSync, 500); 
         requestAnimationFrame(updateLoop);
     }
 
@@ -318,11 +294,12 @@
         animationFrameId = requestAnimationFrame(updateLoop);
     }
 
+    // --- REVERTED VISUAL ENGINE ---
     function updateVisuals() {
         if (!state.metadata) return;
         const visuals = (state.metadata.layout?.layers || []).slice(0, 10);
 
-        // Mark existing images as old to gracefully fade them out
+        // Mark existing layers to be removed safely
         if (UI.playerBg) UI.playerBg.querySelectorAll('img').forEach(img => img.classList.add('old-layer'));
         if (UI.layerContainer) UI.layerContainer.querySelectorAll('img').forEach(img => img.classList.add('old-layer'));
 
@@ -338,34 +315,26 @@
             const targetContainer = isString ? UI.playerBg : UI.layerContainer;
 
             const img = new Image();
-            img.className = isString ? 'bg-layer-cover' : 'floating-layer';
+            // Assign the correct classes (bg-layer-cover = Cover, layerImage = Contain)
+            img.className = isString ? 'bg-layer-cover' : 'layerImage';
             img.dataset.layerId = layerId;
 
             let attempt = 0;
-            
             img.onload = () => {
                 targetContainer.appendChild(img);
                 
-                // Allow browser to render then fade in smoothly
                 requestAnimationFrame(() => {
                     img.classList.add('layer-visible');
                 });
                 
-                // Gracefully remove the old image for this specific layer
+                // Clear the old ones specifically for this layer
                 const oldImages = targetContainer.querySelectorAll(`img[data-layer-id="${layerId}"].old-layer`);
                 oldImages.forEach(oldImg => {
                     oldImg.classList.remove('layer-visible');
                     setTimeout(() => oldImg.remove(), 1500);
                 });
             };
-
-            img.onerror = () => {
-                attempt++;
-                if (attempt < urls.length) {
-                    img.src = urls[attempt];
-                }
-            };
-            
+            img.onerror = () => { attempt++; if (attempt < urls.length) img.src = urls[attempt]; };
             img.src = urls[attempt];
         });
     }
@@ -374,9 +343,8 @@
         state.selections.visuals[id] = visualCid;
         state.selections.audio[id] = audioCid;
         renderTags(); 
-        updateURLParams();
         updateVisuals(); 
-        await loadAudioStreams(true); 
+        await loadAudioStreams(); 
     }
 
     async function init() {
@@ -423,19 +391,16 @@
                 }
             });
 
-            const hasParams = loadURLParams();
-            if (!hasParams) {
-                UI.controls.querySelectorAll('.layer-select').forEach(select => {
-                    select.selectedIndex = Math.floor(Math.random() * select.options.length);
-                    const data = JSON.parse(select.value);
-                    state.selections.visuals[select.dataset.layerId] = data.visual;
-                    state.selections.audio[select.dataset.layerId] = data.audio;
-                });
-            }
+            UI.controls.querySelectorAll('.layer-select').forEach(select => {
+                select.selectedIndex = Math.floor(Math.random() * select.options.length);
+                const data = JSON.parse(select.value);
+                state.selections.visuals[select.dataset.layerId] = data.visual;
+                state.selections.audio[select.dataset.layerId] = data.audio;
+            });
 
             renderTags();
             updateVisuals();
-            await loadAudioStreams(false); 
+            await loadAudioStreams(); 
 
         } catch (e) {
             console.error("Failed to load metadata", e);
@@ -462,11 +427,8 @@
 
     if (UI.playPauseBtn) {
         UI.playPauseBtn.addEventListener('click', async () => {
-            if (state.isPlaying) {
-                pauseAudio();
-            } else {
-                playAudio();
-            }
+            if (state.isPlaying) pauseAudio();
+            else playAudio();
         });
     }
 
@@ -484,9 +446,8 @@
             });
 
             renderTags();
-            updateURLParams();
             updateVisuals();
-            await loadAudioStreams(state.isPlaying);
+            await loadAudioStreams();
         });
     }
 
