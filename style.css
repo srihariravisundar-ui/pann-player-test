@@ -52,17 +52,17 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 /* Gateway Independent Tags */
 .gateway-tags { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-height: 30vh; overflow-y: auto; padding-bottom: 1rem; }
 .gateway-tags::-webkit-scrollbar { width: 4px; }
-.gateway-tags::-webkit-scrollbar-thumb { background: rgba(255,255,255,0); border-radius: 2px; }
-.gateway-tags .minimal-tag { color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding-right: 8px; border-right: 1px solid var(--border-color); text-shadow: 0 2px 8px rgba(0,0,0,0); opacity: 0.9; }
+.gateway-tags::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+.gateway-tags .minimal-tag { 
+    color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; 
+    letter-spacing: 1px; padding-right: 8px; border-right: 1px solid var(--border-color); 
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9); opacity: 0.9; background: transparent; border-radius: 0; padding-left: 0; padding-top: 0; padding-bottom: 0;
+}
 .gateway-tags .minimal-tag:last-child { border-right: none; }
 
 /* --- Fully Opaque Cinematic Artwork Layers --- */
-.layerImage { 
-    position: absolute; opacity: 0; transition: opacity 1.2s ease; 
-    will-change: opacity, transform; transform: translateZ(0); 
-}
+.layerImage { position: absolute; opacity: 0; transition: opacity 1.2s ease; will-change: opacity, transform; transform: translateZ(0); }
 .layerImage.active { opacity: 1; }
-
 .bg-layer-cover { top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; opacity: 0.8; z-index: 1; }
 .floating-layer { top: 50%; left: 50%; width: 100%; height: 100%; object-fit: contain; z-index: 2; pointer-events: none; animation: floatVertical 12s ease-in-out infinite alternate; }
 
@@ -87,15 +87,14 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 /* --- HUD Overlays (Text Shadows for Readability) --- */
 .hud-text { text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.6); }
 
-.control-section { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 10; }
+.control-section { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 10; background: transparent; }
 .overlay-btn { position: absolute; top: 2rem; right: 2rem; background: transparent; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer; transition: transform 0.3s ease; pointer-events: auto; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.8)); }
 .overlay-btn:hover { transform: scale(1.1); }
 
 /* Right Side: Edit Dropdowns */
 .layer-controls-section { 
     position: absolute; top: 50%; right: 3rem; transform: translateY(-50%); 
-    width: 320px; pointer-events: auto; 
-    transition: opacity 0.8s ease, transform 0.8s ease; 
+    width: 320px; pointer-events: auto; transition: opacity 0.8s ease, transform 0.8s ease; 
 }
 .section-header h3 { font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-secondary); }
 .layer-controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem 0.75rem; }
@@ -103,8 +102,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .layer-label { font-size: 0.7rem; color: var(--text-primary); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
 
 .layer-select { 
-    width: 100%; background: transparent; 
-    border: 1px solid rgba(255, 255, 255, 0.3); 
+    width: 100%; background: transparent; border: 1px solid rgba(255, 255, 255, 0.3); 
     color: var(--text-secondary); padding: 0.5rem; border-radius: 4px;
     font-size: 0.75rem; font-family: 'Inter', sans-serif; cursor: pointer; outline: none; 
     transition: all 0.3s ease; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
@@ -112,7 +110,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .layer-select:hover, .layer-select:focus { border-color: rgba(255, 255, 255, 0.8); }
 .layer-select option { background: #000; color: var(--text-primary); text-shadow: none; }
 
-/* Left Side: Playing Tags (Desktop) */
+/* Left Side: Playing Tags (PURE TEXT, ZERO BACKGROUND) */
 .tags-container { 
     position: absolute; top: 50%; left: 3rem; transform: translateY(-50%); 
     display: flex; flex-direction: column; gap: 0.8rem; pointer-events: auto; 
@@ -120,14 +118,20 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 }
 .minimal-tag { 
     color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; 
-    letter-spacing: 2px; text-shadow: 0 2px 8px rgba(0,0,0,0), 0 0 15px rgba(0,0,0,0); opacity: 0.9;
+    letter-spacing: 2px; opacity: 0.9;
+    background: transparent !important; 
+    border: none !important; 
+    padding: 0 !important; 
+    backdrop-filter: none !important; 
+    -webkit-backdrop-filter: none !important;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.6); 
 }
 
 /* Bottom Center: Transport Controls & Scrubber */
 .player { 
     position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); 
     width: 90%; max-width: 500px; pointer-events: auto; 
-    display: flex; flex-direction: column; align-items: stretch;
+    display: flex; flex-direction: column; align-items: center; 
 }
 
 .player-header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 1.5rem; transition: opacity 0.3s; }
@@ -135,24 +139,14 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .status-dot { width: 4px; height: 4px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 5px #fff; }
 
 .player-controls { display: flex; justify-content: center; align-items: center; gap: 2rem; margin-bottom: 1.5rem; width: 100%; }
-.control-btn { 
-    background: transparent; border: none; color: var(--text-primary); 
-    cursor: pointer; transition: transform 0.3s ease, color 0.3s ease; 
-    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.8));
-}
+.control-btn { background: transparent; border: none; color: var(--text-primary); cursor: pointer; transition: transform 0.3s ease, color 0.3s ease; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.8)); }
 .control-btn:hover { transform: scale(1.15); color: #fff; }
 
 .progress-section { width: 100%; }
 .time-display { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.75rem; }
-.progress-bar { 
-    width: 100%; height: 8px; background: rgba(255,255,255,0.25); 
-    cursor: pointer; position: relative; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.5); 
-}
+.progress-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.25); cursor: pointer; position: relative; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
 .progress-fill { height: 100%; background: var(--text-primary); width: 0%; border-radius: 4px; position: relative; box-shadow: 0 0 10px rgba(255,255,255,0.3); }
-.progress-fill::after { 
-    content: ''; position: absolute; right: -6px; top: 50%; transform: translateY(-50%) scale(0); 
-    width: 16px; height: 16px; background: #fff; border-radius: 50%; box-shadow: 0 2px 10px rgba(0,0,0,0.8); transition: transform 0.2s ease; 
-}
+.progress-fill::after { content: ''; position: absolute; right: -6px; top: 50%; transform: translateY(-50%) scale(0); width: 16px; height: 16px; background: #fff; border-radius: 50%; box-shadow: 0 2px 10px rgba(0,0,0,0.8); transition: transform 0.2s ease; }
 .progress-bar:hover .progress-fill::after, .progress-bar:active .progress-fill::after { transform: translateY(-50%) scale(1); }
 
 .loading-section { margin-top: 1rem; width: 100%; transition: opacity 0.3s; }
@@ -192,6 +186,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
    MOBILE RE-ARCHITECTURE (Pure Transparent Stack)
    ==================================================== */
 @media (max-width: 768px) {
+    /* REMOVED: Linear gradient background completely */
     .control-section { background: transparent !important; }
     
     .layer-controls-section { 
@@ -222,6 +217,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
     .control-section {
         display: flex; flex-direction: column; justify-content: flex-end;
         padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+        background: transparent !important;
     }
     
     .layer-controls-section { margin-bottom: 2rem; }
@@ -247,7 +243,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         background: transparent !important; 
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
-        text-shadow: 0 2px 8px rgba(0,0,0,0), 0 0 15px rgba(0,0,0,0);
+        text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.8);
         letter-spacing: 1.5px;
     }
 }
