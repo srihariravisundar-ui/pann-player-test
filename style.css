@@ -8,12 +8,14 @@
     --text-secondary: #ffffff; 
 }
 
-body {
+body, html {
     font-family: 'Inter', sans-serif;
     background: var(--bg-color);
     color: var(--text-primary);
-    overflow-x: hidden;
+    overflow: hidden;
     width: 100vw;
+    height: 100vh;
+    height: 100dvh;
     font-weight: 300;
 }
 
@@ -26,7 +28,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 /* --- Gateway Page --- */
 #gateway-page { 
     position: relative; display: flex; flex-direction: column; text-align: center; 
-    padding: 4rem 2rem; overflow-y: auto; overflow-x: hidden; height: 100dvh;
+    padding: 4rem 2rem; overflow-y: auto; overflow-x: hidden; height: 100%;
 }
 .gateway-bg, .player-bg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; overflow: hidden; z-index: 1; pointer-events: none; }
 .gateway-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%); z-index: 2; pointer-events: none; }
@@ -65,8 +67,8 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
     100% { transform: translate(-50%, -52%); }
 }
 
-/* --- Desktop Default Player --- */
-.container { position: relative; height: 100dvh; width: 100vw; overflow: hidden; display: flex; }
+/* --- Default Desktop Layout --- */
+.container { position: relative; height: 100%; width: 100%; overflow: hidden; }
 
 .artwork-section { 
     position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; 
@@ -85,7 +87,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 
 .layer-controls-section { 
     position: absolute; top: 50%; right: 3rem; transform: translateY(-50%); 
-    width: 320px; pointer-events: auto; transition: opacity 0.8s ease, transform 0.8s ease; 
+    width: 320px; pointer-events: auto; transition: opacity 0.8s ease, visibility 0.8s; 
 }
 .section-header h3 { font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-secondary); }
 .layer-controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem 0.75rem; }
@@ -98,13 +100,26 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
     font-size: 0.75rem; font-family: 'Inter', sans-serif; cursor: pointer; outline: none; 
     transition: all 0.3s ease; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
 }
-.layer-select:hover, .layer-select:focus { border-color: rgba(255, 255, 255, 0.8); }
 .layer-select option { background: #000; color: var(--text-primary); text-shadow: none; }
 
-.tags-container { position: absolute; top: 50%; left: 3rem; transform: translateY(-50%); display: flex; flex-direction: column; gap: 0.8rem; pointer-events: auto; opacity: 0; transition: opacity 0.8s ease, transform 0.8s ease; }
-.minimal-tag { color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; opacity: 0.9; background: transparent !important; border: none !important; padding: 0 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.6); }
+.tags-container { 
+    position: absolute; top: 50%; left: 3rem; transform: translateY(-50%); 
+    display: flex; flex-direction: column; gap: 0.8rem; pointer-events: auto; 
+    opacity: 0; visibility: hidden; transition: opacity 0.8s ease, visibility 0.8s; 
+}
+.minimal-tag { 
+    color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; 
+    letter-spacing: 2px; opacity: 0.9;
+    background: transparent; border: none; padding: 0; 
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.6); 
+}
 
-.player { position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); width: 90%; max-width: 500px; pointer-events: auto; display: flex; flex-direction: column; align-items: center; }
+.player { 
+    position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); 
+    width: 90%; max-width: 500px; pointer-events: auto; 
+    display: flex; flex-direction: column; align-items: center; 
+}
+
 .player-header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 1.5rem; transition: opacity 0.3s; }
 .connection-status { display: flex; align-items: center; gap: 6px; }
 .status-dot { width: 4px; height: 4px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 5px #fff; }
@@ -127,30 +142,39 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text-primary); color: var(--bg-color); padding: 1rem 2rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; z-index: 100; transition: opacity 0.3s; }
 
-body.playing .layer-controls-section { opacity: 0; pointer-events: none; transform: translateY(-50%) translateX(20px); }
-body.playing .tags-container { opacity: 1; pointer-events: auto; transform: translateY(-50%) translateX(0); }
+/* Desktop State Toggles */
+body.playing .layer-controls-section { opacity: 0; visibility: hidden; pointer-events: none; }
+body.playing .tags-container { opacity: 1; visibility: visible; pointer-events: auto; }
 body.playing .player-header, body.playing .loading-section { opacity: 0; pointer-events: none; display: none !important; }
 body.playing .player-controls { margin-bottom: 0.5rem; }
 
+/* --- Responsive Scaling --- */
+@media (min-width: 1920px) {
+    .gateway-content h1 { font-size: 7rem; }
+    .layer-controls-section { width: 400px; right: 5rem; }
+    .tags-container { left: 5rem; }
+}
+
+@media (max-width: 1024px) {
+    .layer-controls-section { right: 2rem; width: 280px; }
+    .tags-container { left: 2rem; }
+}
+
 /* ====================================================
-   ROBUST MOBILE NATIVE LAYOUT (Zero Absolute Traps)
+   STRICT FIXED-ANCHOR MOBILE LAYOUT 
+   (No flex reflows, completely glitch-proof)
    ==================================================== */
 @media (max-width: 768px) {
-    body {
-        overflow-y: auto !important;
-        height: 100dvh;
-        background: #000;
-    }
-
+    
+    /* 1. Base Container Setup */
     .container {
-        display: flex !important;
-        flex-direction: column !important;
-        height: 100dvh !important;
-        width: 100vw !important;
-        position: relative !important;
+        position: fixed !important;
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100vw; height: 100dvh;
+        overflow: hidden;
     }
 
-    /* Artwork background layer */
+    /* 2. Artwork safely in the background */
     .artwork-section {
         position: fixed !important;
         inset: 0 !important;
@@ -160,42 +184,35 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         pointer-events: none !important;
     }
 
-    /* Control section flows naturally as a scrollable container */
+    /* 3. The Control Overlay matches viewport exactly */
     .control-section {
-        position: relative !important;
+        position: fixed !important;
+        inset: 0 !important;
         width: 100vw !important;
-        min-height: 100dvh !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: space-between !important;
-        padding: 1rem 1rem calc(2rem + env(safe-area-inset-bottom)) 1rem !important;
+        height: 100dvh !important;
         z-index: 10 !important;
         background: transparent !important;
-        pointer-events: auto !important;
+        pointer-events: none !important;
     }
 
-    .layer-controls-section, .player, .overlay-btn, .tags-container {
-        pointer-events: auto !important;
-    }
-
-    /* Edit mode dropdowns: fully transparent, 2-column grid */
+    /* 4. PINNED TO TOP-LEFT: Dropdowns (Edit Mode) */
     .layer-controls-section {
-        position: relative !important;
-        top: auto !important; right: auto !important; transform: none !important;
-        width: 100% !important;
-        background: rgba(0, 0, 0, 0.75) !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        border-radius: 12px !important;
-        padding: 1rem !important;
-        margin-top: auto !important;
-        margin-bottom: 1rem !important;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
+        position: fixed !important;
+        top: max(1.5rem, env(safe-area-inset-top)) !important;
+        left: 1rem !important;
+        right: 1rem !important;
+        transform: none !important;
+        width: auto !important;
+        pointer-events: auto !important;
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        z-index: 20;
+        max-height: 50vh;
+        overflow-y: auto;
     }
     
     .section-header h3 {
-        color: #ffffff !important;
-        text-shadow: 0 2px 6px rgba(0,0,0,0.9);
         font-size: 1.1rem;
         margin-bottom: 0.5rem;
     }
@@ -207,16 +224,15 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
     }
     
     .layer-control {
-        background: rgba(0, 0, 0, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.5); /* Slight tint just to read dropdowns */
+        border: 1px solid rgba(255, 255, 255, 0.15);
         border-radius: 6px;
         padding: 0.35rem 0.5rem;
     }
 
     .layer-label {
-        font-size: 0.55rem !important;
+        font-size: 0.6rem !important;
         color: #cccccc !important;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.9);
     }
 
     .layer-select {
@@ -226,78 +242,28 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         border: none !important;
         border-bottom: 1px solid rgba(255,255,255,0.3) !important;
         color: #ffffff !important;
-        text-shadow: 0 1px 3px rgba(0,0,0,0.9);
-    }
-    
-    /* Smooth opacity fade for playing state */
-    body.playing .layer-controls-section {
-        opacity: 0 !important;
-        pointer-events: none !important;
-        visibility: hidden !important;
-        margin: 0 !important;
-        height: 0 !important;
-        overflow: hidden !important;
-        padding: 0 !important;
-        transition: opacity 0.3s ease;
     }
 
-    /* Player Dock */
-    .player {
-        position: relative !important;
-        bottom: auto !important; left: auto !important; transform: none !important;
-        width: 100% !important;
-        background: rgba(0, 0, 0, 0.75) !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        border-radius: 12px !important;
-        padding: 1rem !important;
-        margin-top: auto !important;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-    }
-    
-    .player-header {
-        display: none !important;
-    }
-
-    .player-controls {
-        justify-content: center !important;
-        gap: 2rem !important;
-        margin-bottom: 0.75rem !important;
-    }
-    .control-btn svg { width: 22px; height: 22px; }
-    #icon-play, #icon-pause { width: 36px; height: 36px; }
-
-    .progress-bar {
-        background: rgba(255, 255, 255, 0.3) !important;
-        height: 6px !important;
-        border-radius: 3px !important;
-    }
-    
-    .progress-fill {
-        background: #ffffff !important;
-        border-radius: 3px !important;
-    }
-
-    /* Top Left Pure Text Tags */
+    /* 5. PINNED TO TOP-LEFT: Tags (Play Mode) */
     .tags-container {
-        position: relative !important;
-        top: auto !important; left: auto !important; transform: none !important;
-        width: 100% !important;
+        position: fixed !important;
+        top: max(1.5rem, env(safe-area-inset-top)) !important;
+        left: 1.25rem !important;
+        transform: none !important;
+        width: auto !important;
         display: flex !important;
         flex-direction: column !important;
-        gap: 4px !important;
-        padding: 0.5rem 0 0 0 !important;
-        margin-bottom: auto !important;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.3s ease;
+        align-items: flex-start !important;
+        gap: 6px !important;
+        padding: 0 !important;
+        pointer-events: auto !important;
+        z-index: 20;
+        max-height: 50vh;
+        overflow-y: auto;
     }
-    body.playing .tags-container {
-        opacity: 1 !important;
-        visibility: visible !important;
-    }
+    
     .minimal-tag {
-        font-size: 0.7rem !important;
+        font-size: 0.65rem !important;
         padding: 0 !important;
         border: none !important;
         background: transparent !important;
@@ -306,14 +272,84 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.8) !important;
         letter-spacing: 1.5px !important;
     }
-    
-    .overlay-btn {
-        top: 1rem !important;
+
+    /* 6. PINNED TO BOTTOM: Player Controls */
+    .player {
+        position: fixed !important;
+        bottom: max(1.5rem, env(safe-area-inset-bottom)) !important;
+        left: 1rem !important;
         right: 1rem !important;
+        transform: none !important;
+        width: auto !important;
+        max-width: none !important;
+        pointer-events: auto !important;
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        z-index: 20;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important; /* Ensure progress bar spans full width */
+    }
+
+    .player-header {
+        display: none !important; /* Save space on mobile */
+    }
+
+    .player-controls {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        gap: 1rem !important;
+        margin-bottom: 1rem !important;
+        padding: 0 0.5rem !important;
+    }
+    
+    .control-btn svg { width: 24px; height: 24px; }
+    #icon-play, #icon-pause { width: 44px; height: 44px; }
+
+    .progress-section {
+        width: 100% !important;
+        padding: 0 !important;
+    }
+    .progress-bar {
+        background: rgba(255, 255, 255, 0.3) !important;
+        height: 6px !important;
+        border-radius: 3px !important;
+    }
+    .progress-fill {
+        background: #ffffff !important;
+        border-radius: 3px !important;
+    }
+    .time-display {
+        margin-bottom: 0.5rem !important;
+        font-size: 0.65rem !important;
+    }
+
+    .overlay-btn {
+        position: fixed !important;
+        top: 1.25rem !important;
+        right: 1.25rem !important;
         z-index: 50 !important;
         background: rgba(0,0,0,0.4);
         padding: 6px;
         border-radius: 50%;
         backdrop-filter: blur(4px);
+    }
+
+    /* 7. SAFE STATE TOGGLES (Zero Layout Collapse) */
+    /* Only use opacity and visibility, NEVER display: none or position changes */
+    body.playing .layer-controls-section {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    body:not(.playing) .tags-container {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
     }
 }
