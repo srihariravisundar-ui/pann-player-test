@@ -1,6 +1,5 @@
 (async function () {
     // --- GITHUB CONFIGURATION ---
-    // Change this to true when you upload all your files to GitHub Pages
     const USE_LOCAL_GITHUB_FILES = false; 
     const GITHUB_BASE_URL = "./"; 
 
@@ -31,7 +30,7 @@
 
     let animationFrameId = null;
 
-    // UI Elements
+    // UI Elements (Removed baseImage)
     const UI = {
         gatewayPage: document.getElementById("gateway-page"),
         gatewayBg: document.getElementById("gateway-background"),
@@ -46,7 +45,6 @@
         stopBtn: document.getElementById("stopBtn"),
         saveBtn: document.getElementById("saveBtn"),
         randomizeBtn: document.getElementById("randomizeBtn"),
-        baseImage: document.getElementById("baseImage"),
         artworkDiv: document.getElementById("artwork"),
         loadingOverlay: document.getElementById("loading-overlay"),
         progressFill: document.getElementById("progress-fill"),
@@ -278,24 +276,15 @@
 
     // --- UI Logic & State ---
     function updateVisuals() {
-        // Update Inner Player Visuals
-        UI.artworkDiv.querySelectorAll('.layerImage:not(#baseImage)').forEach(el => el.remove());
-        
-        // Update Gateway Background Visuals
+        // Clear ALL existing layers since baseImage is gone
+        UI.artworkDiv.querySelectorAll('.layerImage').forEach(el => el.remove());
         UI.gatewayBg.innerHTML = '';
-        
-        if (UI.baseImage.src) {
-            const bgBase = new Image();
-            bgBase.className = 'bg-layer-cover active'; // Set base image to cover
-            bgBase.src = UI.baseImage.src;
-            UI.gatewayBg.appendChild(bgBase);
-        }
 
         Object.entries(state.selections.visuals).forEach(([layerId, cid]) => {
             if (cid) {
                 const url = toGatewayURL(cid);
                 
-                // Apply stacked layers to the main player canvas
+                // Apply to main player canvas
                 const img1 = new Image();
                 img1.className = 'layerImage active';
                 img1.src = url;
@@ -383,10 +372,6 @@
         try {
             const res = await fetch(JSON_URL);
             const metadata = await res.json();
-            
-            if (metadata.image) {
-                UI.baseImage.src = toGatewayURL(metadata.image);
-            }
             
             const visuals = (metadata.layout?.layers || []).slice(0, 10);
             const audios = (metadata["audio-layout"]?.layers || []).slice(0, 10);
