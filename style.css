@@ -32,7 +32,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 
 /* Updated background logic to support floating elements */
 .gateway-bg { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; overflow: hidden; z-index: 1; }
-.gateway-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.98) 100%); z-index: 2; pointer-events: none; }
+.gateway-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%); z-index: 2; pointer-events: none; }
 .gateway-content { position: relative; z-index: 3; max-width: 700px; display: flex; flex-direction: column; gap: 2.5rem; align-items: center; }
 .gateway-content h1 { font-size: 5rem; letter-spacing: 4px; }
 
