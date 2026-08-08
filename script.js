@@ -274,7 +274,6 @@
         animationFrameId = requestAnimationFrame(updateLoop);
     }
 
-    // --- VISUAL ENGINE (Clean Crossfade) ---
     function updateVisuals() {
         const oldPlayerLayers = UI.layerContainer.querySelectorAll('.layerImage');
         const oldPlayerBgLayers = UI.playerBg.querySelectorAll('.layerImage');
