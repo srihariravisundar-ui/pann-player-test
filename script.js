@@ -1,6 +1,6 @@
 (async function () {
     // --- CONFIGURATION ---
-    const USE_LOCAL_GITHUB_FILES = true; // Set to true if hosting full package on GitHub
+    const USE_LOCAL_GITHUB_FILES = false; // Set to true if hosting full package on GitHub
     const GITHUB_BASE_URL = "./"; 
 
     const JSON_URL = "https://gateway.pinata.cloud/ipfs/QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq";
