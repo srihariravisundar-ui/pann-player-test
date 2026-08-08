@@ -1,16 +1,24 @@
 (async function () {
+    // --- GITHUB CONFIGURATION ---
+    // Change this to true when you upload all your files to GitHub Pages
+    const USE_LOCAL_GITHUB_FILES = false; 
+    const GITHUB_BASE_URL = "./"; 
+
     const JSON_URL = "https://gateway.pinata.cloud/ipfs/QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq";
     const IPFS_GATEWAYS = ['https://ipfs.io/ipfs/', 'https://cloudflare-ipfs.com/ipfs/', 'https://dweb.link/ipfs/'];
 
-    // Update this array with the full list of 42 artists
+    // --- ARTISTS LIST ---
     const ARTISTS_LIST = [
-        "Pradeep Kumar", "Rithu Vaisakh", "Praveen Sparsh", "Mylai Karthikeyan", 
-        "Nikhil", "Ghana", "Vidhya", "Susha"
+        "Pradeep Kumar", "Anthony Daasan", "Kalyani Nair", "Susha", "Ghana NB",
+        "Vidhya Vijay", "Sujith Sreedhar", "Rakesh", "Manoj Y D", "Pravekha",
+        "M S Yeshwanth", "Praveen Sparsh", "Tapass Naresh", "Kanaxx", "Manonmani",
+        "Ramana Balachandran", "Padmaja Sreenivasan", "Samanvitha G. Sasidaran", "Sushmita Narasimhan", "Nidhi Saraogi",
+        "Sriradha Bharath", "Avantika K", "Fathima Henna", "Pranjal Thakore", "Manoj Krishna",
+        "Himanshu Barot", "Manikandan Chembai", "Aditya Ravindran", "Solomon Ravindar", "Karthik Manickavasakam",
+        "Naveen Narendranath", "Rithu Vysakh", "Nikhil Ram", "Mylai M Karthikeyan", "Bharath Sankar",
+        "Amrit", "Aarvay", "Radar with a K", "Keba Jeremiah", "Shallu Varun",
+        "Jhanu", "Metapurse"
     ];
-    // Auto-pad the remaining array to exactly 42 slots to fill out the UI
-    for(let i = ARTISTS_LIST.length + 1; i <= 42; i++) {
-        ARTISTS_LIST.push(`Artist ${i}`);
-    }
 
     // Engine State
     const state = {
@@ -28,6 +36,8 @@
         gatewayPage: document.getElementById("gateway-page"),
         gatewayBg: document.getElementById("gateway-background"),
         artistsContainer: document.getElementById("artists-container"),
+        learnMoreBtn: document.getElementById("learnMoreBtn"),
+        moreText: document.getElementById("moreText"),
         playerPage: document.getElementById("player-page"),
         enterBtn: document.getElementById("enterBtn"),
         controls: document.getElementById("controls"),
@@ -74,7 +84,10 @@
     function toGatewayURL(cid, attempt = 0) {
         if (!cid) return "";
         if (cid.startsWith("http")) return cid;
-        return `${IPFS_GATEWAYS[attempt] || IPFS_GATEWAYS[0]}${cid.replace('ipfs://', '')}`;
+        
+        const hash = cid.replace('ipfs://', '');
+        if (USE_LOCAL_GITHUB_FILES) return `${GITHUB_BASE_URL}${hash}`;
+        return `${IPFS_GATEWAYS[attempt] || IPFS_GATEWAYS[0]}${hash}`;
     }
 
     function extractRealName(opt, index) {
@@ -119,14 +132,13 @@
         }
     }
 
-    // --- HTML5 Streaming Engine (Fixes RAM Crashes & Allows Background Play) ---
+    // --- HTML5 Streaming Engine ---
     async function loadAudioStreams() {
         setStatus("Buffering Streams...", "loading");
         UI.playPauseBtn.disabled = true;
         
         const activeCIDs = Object.values(state.selections.audio).filter(cid => cid);
         
-        // Stop & cleanup old unused nodes
         Object.keys(state.audioNodes).forEach(oldCid => {
             if (!activeCIDs.includes(oldCid)) {
                 state.audioNodes[oldCid].pause();
@@ -148,7 +160,10 @@
                 audio.crossOrigin = "anonymous";
                 audio.loop = true;
                 audio.preload = "auto";
-                audio.preservesPitch = true; // Essential for seamless playbackRate adjustments
+                
+                audio.preservesPitch = false; 
+                audio.mozPreservesPitch = false;
+                audio.webkitPreservesPitch = false;
                 
                 audio.addEventListener('canplaythrough', () => {
                     if (audio.duration > state.duration) state.duration = audio.duration;
@@ -172,7 +187,6 @@
         setStatus("Ready", "ready");
         UI.playPauseBtn.disabled = false;
         
-        // Media Session for Background Playback
         if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: 'Pann Blueprint',
@@ -183,28 +197,22 @@
         }
     }
 
-    // ARTIFACT-FREE SYNC: Uses playbackRate instead of currentTime hard-seeking
+    // Artifact-Free Sync Engine
     function enforceSync() {
-        const nodes = Object.values(state.audioNodes);
+        const nodes = Object.values(state.audioNodes).filter(n => !n.paused);
         if (nodes.length <= 1) return;
         
-        const masterTime = nodes[0].currentTime;
+        const master = nodes[0];
         nodes.forEach((node, i) => {
             if (i === 0) return;
-            const drift = node.currentTime - masterTime;
+            const drift = node.currentTime - master.currentTime;
             
-            if (Math.abs(drift) > 0.4) {
-                // Hard seek ONLY if the node is catastrophically out of sync (e.g. initial load buffer lag)
-                node.currentTime = masterTime;
-            } else if (drift > 0.03) {
-                // Node is slightly ahead: slow it down softly to avoid clipping
-                node.playbackRate = 0.96;
-            } else if (drift < -0.03) {
-                // Node is slightly behind: speed it up softly
-                node.playbackRate = 1.04;
+            if (Math.abs(drift) > 0.2) {
+                node.currentTime = master.currentTime;
+            } else if (Math.abs(drift) > 0.01) {
+                node.playbackRate = master.playbackRate - (drift * 0.5); 
             } else {
-                // Perfectly in sync: lock in at 1.0x speed
-                node.playbackRate = 1.0;
+                node.playbackRate = master.playbackRate;
             }
         });
     }
@@ -217,10 +225,8 @@
         nodes.forEach(node => { node.currentTime = timeToSet; });
 
         nodes.forEach(node => {
-            const playPromise = node.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(e => console.log("Playback interrupted"));
-            }
+            const p = node.play();
+            if (p !== undefined) p.catch(e => {});
         });
 
         state.isPlaying = true;
@@ -228,7 +234,6 @@
         toggleEditMode(false);
         setStatus("Playing", "ready");
         
-        // Run soft-sync algorithm every 500ms
         if (state.syncInterval) clearInterval(state.syncInterval);
         state.syncInterval = setInterval(enforceSync, 500); 
 
@@ -274,24 +279,51 @@
     // --- UI Logic & State ---
     function updateVisuals() {
         // Update Inner Player Visuals
-        const layers = UI.artworkDiv.querySelectorAll('.layerImage:not(#baseImage)');
-        layers.forEach(l => l.remove());
+        UI.artworkDiv.querySelectorAll('.layerImage:not(#baseImage)').forEach(el => el.remove());
         
         // Update Gateway Background Visuals
         UI.gatewayBg.innerHTML = '';
+        
+        if (UI.baseImage.src) {
+            const bgBase = new Image();
+            bgBase.className = 'bg-layer-cover active'; // Set base image to cover
+            bgBase.src = UI.baseImage.src;
+            UI.gatewayBg.appendChild(bgBase);
+        }
 
-        Object.values(state.selections.visuals).forEach(cid => {
+        Object.entries(state.selections.visuals).forEach(([layerId, cid]) => {
             if (cid) {
-                // Apply to main player
-                const img = new Image();
-                img.className = 'layerImage active';
-                img.src = toGatewayURL(cid);
-                UI.artworkDiv.appendChild(img);
+                const url = toGatewayURL(cid);
+                
+                // Apply stacked layers to the main player canvas
+                const img1 = new Image();
+                img1.className = 'layerImage active';
+                img1.src = url;
+                UI.artworkDiv.appendChild(img1);
 
-                // Apply to Gateway Page dynamically
+                // Apply dynamic logic to the Gateway Background
                 const bgImg = new Image();
-                bgImg.className = 'layerImage active';
-                bgImg.src = toGatewayURL(cid);
+                bgImg.src = url;
+                
+                // Check if this is the String layer (looks for "string" in the ID)
+                if (layerId.toLowerCase().includes('string')) {
+                    bgImg.className = 'bg-layer-cover active';
+                } else {
+                    bgImg.className = 'floating-layer active';
+                    
+                    // Randomize size and starting position for the floating layers
+                    const size = 30 + Math.random() * 50; 
+                    const top = -10 + Math.random() * 80; 
+                    const left = -10 + Math.random() * 80; 
+                    const delay = Math.random() * -20; 
+                    
+                    bgImg.style.width = `${size}vw`;
+                    bgImg.style.height = `${size}vw`;
+                    bgImg.style.top = `${top}vh`;
+                    bgImg.style.left = `${left}vw`;
+                    bgImg.style.animationDelay = `${delay}s`;
+                }
+                
                 UI.gatewayBg.appendChild(bgImg);
             }
         });
@@ -353,14 +385,7 @@
             const metadata = await res.json();
             
             if (metadata.image) {
-                const baseImgUrl = toGatewayURL(metadata.image);
-                UI.baseImage.src = baseImgUrl;
-                
-                // Add base image to gateway BG
-                const bgBase = new Image();
-                bgBase.className = 'layerImage active';
-                bgBase.src = baseImgUrl;
-                UI.gatewayBg.appendChild(bgBase);
+                UI.baseImage.src = toGatewayURL(metadata.image);
             }
             
             const visuals = (metadata.layout?.layers || []).slice(0, 10);
@@ -403,7 +428,7 @@
                 }
             });
 
-            // Apply URL state OR completely randomize the initial loadout
+            // Apply URL state OR randomize
             if (!applyURLState()) {
                 UI.controls.querySelectorAll('.layer-select').forEach(select => {
                     select.selectedIndex = Math.floor(Math.random() * select.options.length);
@@ -424,6 +449,15 @@
     }
 
     // --- Events ---
+    UI.learnMoreBtn.addEventListener('click', () => {
+        UI.moreText.classList.toggle('hidden');
+        if (UI.moreText.classList.contains('hidden')) {
+            UI.learnMoreBtn.textContent = "Learn more";
+        } else {
+            UI.learnMoreBtn.textContent = "Show less";
+        }
+    });
+
     UI.enterBtn.addEventListener('click', () => {
         UI.gatewayPage.classList.remove('active');
         setTimeout(() => {
