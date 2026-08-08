@@ -2,9 +2,19 @@
     const JSON_URL = "https://gateway.pinata.cloud/ipfs/QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq";
     const IPFS_GATEWAYS = ['https://ipfs.io/ipfs/', 'https://cloudflare-ipfs.com/ipfs/', 'https://dweb.link/ipfs/'];
 
+    // Update this array with the full list of 42 artists
+    const ARTISTS_LIST = [
+        "Pradeep Kumar", "Rithu Vaisakh", "Praveen Sparsh", "Mylai Karthikeyan", 
+        "Nikhil", "Ghana", "Vidhya", "Susha"
+    ];
+    // Auto-pad the remaining array to exactly 42 slots to fill out the UI
+    for(let i = ARTISTS_LIST.length + 1; i <= 42; i++) {
+        ARTISTS_LIST.push(`Artist ${i}`);
+    }
+
     // Engine State
     const state = {
-        audioNodes: {}, // HTML5 Audio Elements mapped by CID
+        audioNodes: {}, 
         selections: { visuals: {}, audio: {} },
         isPlaying: false,
         duration: 0,
@@ -16,12 +26,14 @@
     // UI Elements
     const UI = {
         gatewayPage: document.getElementById("gateway-page"),
+        gatewayBg: document.getElementById("gateway-background"),
+        artistsContainer: document.getElementById("artists-container"),
         playerPage: document.getElementById("player-page"),
         enterBtn: document.getElementById("enterBtn"),
         controls: document.getElementById("controls"),
         tagsContainer: document.getElementById("active-tags"),
-        playBtn: document.getElementById("playBtn"),
-        pauseBtn: document.getElementById("pauseBtn"),
+        playPauseBtn: document.getElementById("playPauseBtn"),
+        stopBtn: document.getElementById("stopBtn"),
         saveBtn: document.getElementById("saveBtn"),
         randomizeBtn: document.getElementById("randomizeBtn"),
         baseImage: document.getElementById("baseImage"),
@@ -37,6 +49,15 @@
         fullscreenBtn: document.getElementById("fullscreenBtn"),
         toast: document.getElementById("toast")
     };
+
+    function populateArtists() {
+        ARTISTS_LIST.forEach(artist => {
+            const tag = document.createElement("span");
+            tag.className = "minimal-tag";
+            tag.textContent = artist;
+            UI.artistsContainer.appendChild(tag);
+        });
+    }
 
     function formatTime(seconds) {
         if (!seconds || isNaN(seconds)) return "0:00";
@@ -101,7 +122,7 @@
     // --- HTML5 Streaming Engine (Fixes RAM Crashes & Allows Background Play) ---
     async function loadAudioStreams() {
         setStatus("Buffering Streams...", "loading");
-        UI.playBtn.disabled = true;
+        UI.playPauseBtn.disabled = true;
         
         const activeCIDs = Object.values(state.selections.audio).filter(cid => cid);
         
@@ -114,13 +135,12 @@
             }
         });
 
-        // Initialize new nodes
         let loadedCount = 0;
         const loadPromises = activeCIDs.map(cid => {
             return new Promise((resolve) => {
                 if (state.audioNodes[cid]) {
                     loadedCount++;
-                    resolve(); // Already loaded
+                    resolve(); 
                     return;
                 }
 
@@ -128,6 +148,7 @@
                 audio.crossOrigin = "anonymous";
                 audio.loop = true;
                 audio.preload = "auto";
+                audio.preservesPitch = true; // Essential for seamless playbackRate adjustments
                 
                 audio.addEventListener('canplaythrough', () => {
                     if (audio.duration > state.duration) state.duration = audio.duration;
@@ -136,7 +157,7 @@
                     resolve();
                 }, { once: true });
 
-                audio.addEventListener('error', () => { resolve(); }); // Ignore failure to not block mix
+                audio.addEventListener('error', () => { resolve(); }); 
                 
                 audio.src = toGatewayURL(cid);
                 audio.load();
@@ -149,21 +170,20 @@
         UI.totalTimeEl.textContent = formatTime(state.duration);
         UI.loadingFill.style.width = '0%';
         setStatus("Ready", "ready");
-        UI.playBtn.disabled = false;
+        UI.playPauseBtn.disabled = false;
         
-        // Initialize Media Session for Lock Screen / Background playback
+        // Media Session for Background Playback
         if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: 'Pann Blueprint',
-                artist: 'Pradeep Kumar & 42 Artists',
-                album: 'Osai Kekkudho'
+                artist: 'Pradeep Kumar & The Collective',
             });
             navigator.mediaSession.setActionHandler('play', () => playAudio());
             navigator.mediaSession.setActionHandler('pause', () => pauseAudio());
         }
     }
 
-    // Master Sync Function: Prevents HTML5 audio from drifting
+    // ARTIFACT-FREE SYNC: Uses playbackRate instead of currentTime hard-seeking
     function enforceSync() {
         const nodes = Object.values(state.audioNodes);
         if (nodes.length <= 1) return;
@@ -171,9 +191,20 @@
         const masterTime = nodes[0].currentTime;
         nodes.forEach((node, i) => {
             if (i === 0) return;
-            // If any track drifts by more than 0.05s, snap it back to master
-            if (Math.abs(node.currentTime - masterTime) > 0.05) {
+            const drift = node.currentTime - masterTime;
+            
+            if (Math.abs(drift) > 0.4) {
+                // Hard seek ONLY if the node is catastrophically out of sync (e.g. initial load buffer lag)
                 node.currentTime = masterTime;
+            } else if (drift > 0.03) {
+                // Node is slightly ahead: slow it down softly to avoid clipping
+                node.playbackRate = 0.96;
+            } else if (drift < -0.03) {
+                // Node is slightly behind: speed it up softly
+                node.playbackRate = 1.04;
+            } else {
+                // Perfectly in sync: lock in at 1.0x speed
+                node.playbackRate = 1.0;
             }
         });
     }
@@ -182,7 +213,6 @@
         const nodes = Object.values(state.audioNodes);
         if (nodes.length === 0) return;
 
-        // Sync times before playing
         const timeToSet = targetTime !== null ? targetTime : nodes[0].currentTime;
         nodes.forEach(node => { node.currentTime = timeToSet; });
 
@@ -194,12 +224,13 @@
         });
 
         state.isPlaying = true;
+        UI.playPauseBtn.textContent = "Pause";
         toggleEditMode(false);
         setStatus("Playing", "ready");
         
-        // Start Sync Loop (Fixes HTML5 drift)
+        // Run soft-sync algorithm every 500ms
         if (state.syncInterval) clearInterval(state.syncInterval);
-        state.syncInterval = setInterval(enforceSync, 2000); 
+        state.syncInterval = setInterval(enforceSync, 500); 
 
         requestAnimationFrame(updateLoop);
     }
@@ -207,8 +238,25 @@
     function pauseAudio() {
         Object.values(state.audioNodes).forEach(node => node.pause());
         state.isPlaying = false;
+        UI.playPauseBtn.textContent = "Play";
         if (state.syncInterval) clearInterval(state.syncInterval);
         setStatus("Paused", "ready");
+        toggleEditMode(true);
+    }
+
+    function stopAudio() {
+        Object.values(state.audioNodes).forEach(node => {
+            node.pause();
+            node.currentTime = 0;
+            node.playbackRate = 1.0;
+        });
+        state.isPlaying = false;
+        UI.playPauseBtn.textContent = "Play";
+        UI.progressFill.style.width = '0%';
+        UI.currentTimeEl.textContent = '0:00';
+        if (state.syncInterval) clearInterval(state.syncInterval);
+        cancelAnimationFrame(animationFrameId);
+        setStatus("Stopped", "ready");
         toggleEditMode(true);
     }
 
@@ -225,21 +273,31 @@
 
     // --- UI Logic & State ---
     function updateVisuals() {
+        // Update Inner Player Visuals
         const layers = UI.artworkDiv.querySelectorAll('.layerImage:not(#baseImage)');
         layers.forEach(l => l.remove());
+        
+        // Update Gateway Background Visuals
+        UI.gatewayBg.innerHTML = '';
 
         Object.values(state.selections.visuals).forEach(cid => {
             if (cid) {
+                // Apply to main player
                 const img = new Image();
                 img.className = 'layerImage active';
                 img.src = toGatewayURL(cid);
                 UI.artworkDiv.appendChild(img);
+
+                // Apply to Gateway Page dynamically
+                const bgImg = new Image();
+                bgImg.className = 'layerImage active';
+                bgImg.src = toGatewayURL(cid);
+                UI.gatewayBg.appendChild(bgImg);
             }
         });
     }
 
     function updateURLState() {
-        // Build a concise URL parameter array based on selected indices
         const indices = [];
         UI.controls.querySelectorAll('.layer-select').forEach(select => {
             indices.push(select.selectedIndex);
@@ -283,16 +341,27 @@
             await loadAudioStreams();
             playAudio(); 
         } else {
-            await loadAudioStreams(); // Buffer silently
+            await loadAudioStreams(); 
         }
     }
 
     async function init() {
+        populateArtists();
+        
         try {
             const res = await fetch(JSON_URL);
             const metadata = await res.json();
             
-            if (metadata.image) UI.baseImage.src = toGatewayURL(metadata.image);
+            if (metadata.image) {
+                const baseImgUrl = toGatewayURL(metadata.image);
+                UI.baseImage.src = baseImgUrl;
+                
+                // Add base image to gateway BG
+                const bgBase = new Image();
+                bgBase.className = 'layerImage active';
+                bgBase.src = baseImgUrl;
+                UI.gatewayBg.appendChild(bgBase);
+            }
             
             const visuals = (metadata.layout?.layers || []).slice(0, 10);
             const audios = (metadata["audio-layout"]?.layers || []).slice(0, 10);
@@ -334,7 +403,7 @@
                 }
             });
 
-            // Handle Initial Load (URL params OR Randomize)
+            // Apply URL state OR completely randomize the initial loadout
             if (!applyURLState()) {
                 UI.controls.querySelectorAll('.layer-select').forEach(select => {
                     select.selectedIndex = Math.floor(Math.random() * select.options.length);
@@ -347,14 +416,14 @@
 
             updateVisuals();
             UI.loadingOverlay.style.display = 'none';
-            await loadAudioStreams(); // Pre-buffer
+            await loadAudioStreams(); 
 
         } catch (e) {
             setStatus("Failed to load metadata", "error");
         }
     }
 
-    // --- Page Transitions & Events ---
+    // --- Events ---
     UI.enterBtn.addEventListener('click', () => {
         UI.gatewayPage.classList.remove('active');
         setTimeout(() => {
@@ -364,12 +433,16 @@
         }, 800);
     });
 
-    UI.playBtn.addEventListener('click', async () => {
-        if (Object.keys(state.audioNodes).length === 0) await loadAudioStreams();
-        playAudio();
+    UI.playPauseBtn.addEventListener('click', async () => {
+        if (state.isPlaying) {
+            pauseAudio();
+        } else {
+            if (Object.keys(state.audioNodes).length === 0) await loadAudioStreams();
+            playAudio();
+        }
     });
 
-    UI.pauseBtn.addEventListener('click', () => pauseAudio());
+    UI.stopBtn.addEventListener('click', () => stopAudio());
 
     UI.randomizeBtn.addEventListener('click', async () => {
         UI.controls.querySelectorAll('.layer-select').forEach(select => {
