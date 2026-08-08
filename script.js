@@ -106,7 +106,7 @@
                 }
             } catch (e) {}
         }
-        return `Layer ${index + 1}`; // Updated fallback
+        return `Layer ${index + 1}`;
     }
 
     function toggleEditMode(isEditing) {
@@ -178,7 +178,6 @@
         UI.playPauseBtn.disabled = false;
         
         if ('mediaSession' in navigator) {
-            // Simplified metadata for native device display
             navigator.mediaSession.metadata = new MediaMetadata({ title: 'Pann', artist: 'Pradeep Kumar & The Collective' });
             navigator.mediaSession.setActionHandler('play', () => playAudio());
             navigator.mediaSession.setActionHandler('pause', () => pauseAudio());
@@ -275,6 +274,7 @@
         animationFrameId = requestAnimationFrame(updateLoop);
     }
 
+    // --- VISUAL ENGINE (Clean Crossfade) ---
     function updateVisuals() {
         const oldPlayerLayers = UI.layerContainer.querySelectorAll('.layerImage');
         const oldPlayerBgLayers = UI.playerBg.querySelectorAll('.layerImage');
