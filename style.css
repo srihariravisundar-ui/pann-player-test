@@ -24,7 +24,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .page-container.active { opacity: 1; pointer-events: all; z-index: 10; }
 .hidden { display: none !important; }
 
-/* --- Gateway Page & Dynamic Background --- */
+/* --- Gateway Page --- */
 #gateway-page { 
     position: relative; display: flex; flex-direction: column; text-align: center; 
     padding: 4rem 2rem; overflow-y: auto; overflow-x: hidden;
@@ -49,15 +49,10 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .artists-section { margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 2rem; width: 100%; }
 .artists-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 1.5rem; text-shadow: 0 2px 10px rgba(0,0,0,0.9); }
 
-/* Gateway Independent Tags */
 .gateway-tags { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-height: 30vh; overflow-y: auto; padding-bottom: 1rem; }
 .gateway-tags::-webkit-scrollbar { width: 4px; }
 .gateway-tags::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
-.gateway-tags .minimal-tag { 
-    color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; 
-    letter-spacing: 1px; padding-right: 8px; border-right: 1px solid var(--border-color); 
-    text-shadow: 0 2px 8px rgba(0,0,0,0.9); opacity: 0.9; background: transparent; border-radius: 0; padding-left: 0; padding-top: 0; padding-bottom: 0;
-}
+.gateway-tags .minimal-tag { color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding-right: 8px; border-right: 1px solid var(--border-color); text-shadow: 0 2px 8px rgba(0,0,0,0.9); opacity: 0.9; background: transparent; border-radius: 0; padding-left: 0; padding-top: 0; padding-bottom: 0; }
 .gateway-tags .minimal-tag:last-child { border-right: none; }
 
 /* --- Fully Opaque Cinematic Artwork Layers --- */
@@ -84,7 +79,7 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 #loading-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 1rem; z-index: 10; }
 .loading-spinner { width: 24px; height: 24px; border: 1px solid rgba(255,255,255,0.2); border-top: 1px solid var(--text-primary); border-radius: 50%; animation: spin 1s linear infinite; }
 
-/* --- HUD Overlays (Text Shadows for Readability) --- */
+/* --- HUD Overlays --- */
 .hud-text { text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.6); }
 
 .control-section { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 10; background: transparent; }
@@ -119,11 +114,8 @@ h1, h2, h3, #track-title, .layer-label { font-family: 'Playfair Display', serif;
 .minimal-tag { 
     color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; 
     letter-spacing: 2px; opacity: 0.9;
-    background: transparent !important; 
-    border: none !important; 
-    padding: 0 !important; 
-    backdrop-filter: none !important; 
-    -webkit-backdrop-filter: none !important;
+    background: transparent !important; border: none !important; padding: 0 !important; 
+    backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
     text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.6); 
 }
 
@@ -186,7 +178,6 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
    MOBILE RE-ARCHITECTURE (Pure Transparent Stack)
    ==================================================== */
 @media (max-width: 768px) {
-    /* REMOVED: Linear gradient background completely */
     .control-section { background: transparent !important; }
     
     .layer-controls-section { 
@@ -213,7 +204,6 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
 @media (max-width: 480px) {
     .gateway-content h1 { font-size: 2.8rem; }
     
-    /* Edit mode UI positioned neatly */
     .control-section {
         display: flex; flex-direction: column; justify-content: flex-end;
         padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
@@ -224,18 +214,16 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
     .layer-controls { grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .layer-select { font-size: 0.7rem; padding: 0.6rem; }
     
-    /* Player controls perfectly centered at bottom */
     .player { width: 92%; padding: 0; }
     .player-controls { justify-content: space-between; gap: 1rem; margin-bottom: 1rem; padding: 0 0.5rem; }
     .control-btn svg { width: 24px; height: 24px; }
     #icon-play, #icon-pause { width: 44px; height: 44px; }
     
-    /* Progress bar fully visible */
     .progress-section { width: 100%; padding: 0; }
     .time-display { margin-bottom: 0.5rem; font-size: 0.7rem; }
     
-    /* Pure text left-aligned tags (No backgrounds, borders, or pills) */
-    .tags-container { top: 10vh; left: 1.25rem; gap: 12px; }
+    /* Pure text left-aligned tags (Zero Backgrounds) */
+    .tags-container { top: 10vh; left: 1.25rem; gap: 10px; }
     .minimal-tag { 
         font-size: 0.65rem; 
         padding: 0 !important; 
