@@ -170,7 +170,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
 }
 
 /* ====================================================
-   TRUE MOBILE-FIRST FLEX LAYOUT (Fully Transparent & Visible)
+   STABLE MOBILE-FIRST FLEX ARCHITECTURE (No Absolute Traps)
    ==================================================== */
 @media (max-width: 768px) {
     body {
@@ -183,13 +183,13 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
     .container {
         display: flex !important;
         flex-direction: column !important;
-        height: 100% !important;
-        width: 100% !important;
+        height: 100dvh !important;
+        width: 100vw !important;
         position: relative !important;
         overflow-y: auto !important;
     }
 
-    /* Artwork sits fixed in the background */
+    /* Artwork stays fixed in the background natively */
     .artwork-section {
         position: fixed !important;
         inset: 0 !important;
@@ -268,8 +268,15 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         text-shadow: 0 1px 3px rgba(0,0,0,0.9);
     }
     
+    /* FIX: When playing on mobile, smoothly fade out the dropdowns instead of display:none collapsing */
     body.playing .layer-controls-section {
-        display: none !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        visibility: hidden !important;
+        margin: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        padding: 0 !important;
     }
 
     /* Player Dock: fully transparent background, perfectly visible */
@@ -284,7 +291,7 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
     }
     
     .player-header {
-        display: none !important; /* Hide redundant header on mobile play/edit to save space */
+        display: none !important;
     }
 
     .player-controls {
@@ -317,10 +324,12 @@ body.playing .player-controls { margin-bottom: 0.5rem; }
         padding: 0.5rem 0 0 0 !important;
         margin-bottom: auto !important;
         opacity: 0;
+        visibility: hidden;
         transition: opacity 0.5s ease;
     }
     body.playing .tags-container {
         opacity: 1 !important;
+        visibility: visible !important;
     }
     .minimal-tag {
         font-size: 0.7rem !important;
