@@ -52,6 +52,7 @@
         currentTimeEl: document.getElementById("current-time"),
         totalTimeEl: document.getElementById("total-time"),
         loadingOverlay: document.getElementById("loading-overlay"),
+        loadingText: document.getElementById("loading-text"),
         playerBg: document.getElementById("player-bg"),
         layerContainer: document.getElementById("layer-container"),
         learnMoreBtn: document.getElementById("learnMoreBtn"),
@@ -128,6 +129,7 @@
 
     async function loadAudioStreams() {
         UI.loadingOverlay.classList.remove('hidden');
+        if (UI.loadingText) UI.loadingText.textContent = "Connecting Layers...";
         if (UI.playPauseBtn) UI.playPauseBtn.disabled = true;
 
         const activeCIDs = Object.values(state.selections.audio).filter(cid => cid);
@@ -283,8 +285,8 @@
         cancelAnimationFrame(animationFrameId);
     }
 
-    // --- SEAMLESS IOS SEEK ENGINE ---
-    function seekTo(targetTime) {
+    // --- THE ABSOLUTE BUFFER LOCK FIX ---
+    async function seekTo(targetTime) {
         if (!state.duration || isNaN(targetTime)) return;
 
         state.isSeeking = true;
@@ -296,36 +298,59 @@
             return;
         }
 
-        // Update progress bar UI instantly
+        // 1. Instantly update UI and show loading spinner
         const percent = (targetTime / state.duration) * 100;
         if (UI.progressFill) UI.progressFill.style.width = `${percent}%`;
         if (UI.currentTimeEl) UI.currentTimeEl.textContent = formatTime(targetTime);
 
-        // Mute temporarily during seek to prevent audio buffer pops on WebKit
+        UI.loadingOverlay.classList.remove('hidden');
+        if (UI.loadingText) UI.loadingText.textContent = "Syncing Layers...";
+
+        // 2. Pause and mute all tracks so they don't start playing staggeringly
         nodes.forEach(node => {
-            try {
-                node.volume = 0;
-                node.currentTime = targetTime;
-            } catch (e) {
-                console.warn("Seek error:", e);
-            }
+            node.pause();
+            node.volume = 0;
+            node.playbackRate = 1.0; // Reset any previous pitch bending
         });
 
-        // Give iOS WebKit 300ms to buffer target range cleanly
-        setTimeout(() => {
-            state.isSeeking = false;
-            enforceSync();
+        // 3. Command the seek and wait for EVERY node to buffer independently
+        const seekPromises = nodes.map(node => {
+            return new Promise(resolve => {
+                const onReady = () => {
+                    node.removeEventListener('seeked', onReady);
+                    node.removeEventListener('canplay', onReady);
+                    resolve();
+                };
+                
+                node.addEventListener('seeked', onReady);
+                node.addEventListener('canplay', onReady);
+                
+                node.currentTime = targetTime;
 
-            if (state.isPlaying) {
-                nodes.forEach(node => {
-                    node.playbackRate = 1.0;
-                    node.volume = 1;
-                    const p = node.play();
-                    if (p !== undefined) p.catch(() => {});
-                });
-                state.syncInterval = setInterval(enforceSync, 600);
-            }
-        }, 300);
+                // Failsafe: if a bad network hangs the event, resolve after 4s to prevent permanent lock
+                setTimeout(resolve, 4000); 
+            });
+        });
+
+        await Promise.all(seekPromises);
+
+        // 4. Hard-snap them all to the exact same millisecond one last time to fix micro-drifts during the wait
+        nodes.forEach(node => {
+            node.currentTime = targetTime;
+            node.volume = 1; // Restore volume
+        });
+
+        // 5. Safely resume
+        state.isSeeking = false;
+        UI.loadingOverlay.classList.add('hidden');
+
+        if (state.isPlaying) {
+            nodes.forEach(node => {
+                const p = node.play();
+                if (p !== undefined) p.catch(() => {});
+            });
+            state.syncInterval = setInterval(enforceSync, 600);
+        }
     }
 
     function handleProgressInteraction(e) {
