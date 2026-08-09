@@ -1,4 +1,4 @@
-// web3.js - Self-Contained Non-Disruptive Web3 Bridge for Pann
+// web3.js - Safe Non-Blocking Web3 Integration for Pann
 
 const WEB3_CONFIG = {
     contractAddress: "0x96be3dfdf788b7078ef7514e076ccfd33acfd7cd",
@@ -16,6 +16,7 @@ const WEB3_CONFIG = {
     },
     abi: [
         "function balanceOf(address account, uint256 id) view returns (uint256)",
+        "function ownerOf(uint256 tokenId) view returns (address)",
         "function useControlToken(uint256 tokenId, uint256 variantId)"
     ]
 };
@@ -28,20 +29,35 @@ const web3State = {
     pendingChanges: {}
 };
 
-function injectWeb3UI() {
-    const playerTop = document.querySelector('.player-top');
-    if (playerTop && !document.getElementById('connect-wallet-btn')) {
-        const walletBtn = document.createElement('button');
-        walletBtn.id = 'connect-wallet-btn';
-        walletBtn.className = 'wallet-btn';
-        walletBtn.textContent = 'Connect Wallet';
-        walletBtn.addEventListener('click', async () => {
-            if (web3State.address) openOwnerModal();
-            else await connectWallet();
-        });
-        playerTop.appendChild(walletBtn);
+// Safe DOM observer initialization on load
+window.addEventListener('DOMContentLoaded', () => {
+    try {
+        setupWeb3UI();
+    } catch (e) {
+        console.error("Web3 initialization error:", e);
     }
+});
 
+function setupWeb3UI() {
+    // Non-blocking observer to safely mount the wallet button when player-top appears
+    const observer = new MutationObserver((mutations, obs) => {
+        const playerTop = document.querySelector('.player-top');
+        if (playerTop && !document.getElementById('connect-wallet-btn')) {
+            const walletBtn = document.createElement('button');
+            walletBtn.id = 'connect-wallet-btn';
+            walletBtn.className = 'wallet-btn';
+            walletBtn.textContent = 'Connect Wallet';
+            walletBtn.addEventListener('click', async () => {
+                if (web3State.address) openOwnerModal();
+                else await connectWallet();
+            });
+            playerTop.appendChild(walletBtn);
+            obs.disconnect(); // Stop observing once injected
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Safely append modal container to body
     if (!document.getElementById('owner-tab-overlay')) {
         const overlay = document.createElement('div');
         overlay.id = 'owner-tab-overlay';
@@ -49,7 +65,7 @@ function injectWeb3UI() {
         overlay.innerHTML = `
             <div class="owner-modal-content">
                 <button id="close-owner-tab" class="close-btn">×</button>
-                <h2 class="serif" style="color:#fff;">Master Stem Controls</h2>
+                <h2 class="serif" style="color:#fff; margin:0;">Master Stem Controls</h2>
                 <p class="owner-description">Modify your owned layers below. Changes will be published to the Ethereum blockchain.</p>
                 <div id="owner-layer-controls" class="owner-controls-container"></div>
                 <div class="owner-actions">
@@ -69,18 +85,26 @@ function injectWeb3UI() {
 
 async function connectWallet() {
     if (typeof window.ethereum === 'undefined') {
-        alert("MetaMask is not installed. Please install a Web3 wallet.");
+        alert("MetaMask is not installed. Please install a Web3 wallet to continue.");
         return;
     }
+
     try {
         const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+        
         const network = await provider.getNetwork();
         if (network.chainId !== WEB3_CONFIG.chainId) {
-            await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: ethers.utils.hexValue(WEB3_CONFIG.chainId) }],
-            });
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: ethers.utils.hexValue(WEB3_CONFIG.chainId) }],
+                });
+            } catch (switchError) {
+                alert("Please switch your MetaMask network to Ethereum Mainnet.");
+                return;
+            }
         }
+
         await provider.send("eth_requestAccounts", []);
         const signer = provider.getSigner();
         const address = await signer.getAddress();
@@ -97,6 +121,7 @@ async function connectWallet() {
         
         await verifyOwnership();
         openOwnerModal();
+        
     } catch (error) {
         console.error("Wallet connection failed:", error);
     }
@@ -105,13 +130,25 @@ async function connectWallet() {
 async function verifyOwnership() {
     if (!web3State.signer) return;
     web3State.ownedLayers = [];
+    
     try {
         const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, web3State.provider);
+        
         for (const [layerId, tokenId] of Object.entries(WEB3_CONFIG.layerTokens)) {
             if (tokenId === 0) continue;
-            const balance = await contract.balanceOf(web3State.address, tokenId);
-            if (balance.gt(0)) {
-                web3State.ownedLayers.push(layerId);
+            try {
+                const balance = await contract.balanceOf(web3State.address, tokenId);
+                if (balance.gt(0)) {
+                    web3State.ownedLayers.push(layerId);
+                    continue;
+                }
+            } catch (e) {
+                try {
+                    const owner = await contract.ownerOf(tokenId);
+                    if (owner.toLowerCase() === web3State.address.toLowerCase()) {
+                        web3State.ownedLayers.push(layerId);
+                    }
+                } catch (err) {}
             }
         }
     } catch (error) {
@@ -120,7 +157,6 @@ async function verifyOwnership() {
 }
 
 function openOwnerModal() {
-    injectWeb3UI();
     const overlay = document.getElementById('owner-tab-overlay');
     const container = document.getElementById('owner-layer-controls');
     const publishBtn = document.getElementById('publish-btn');
@@ -139,7 +175,7 @@ function openOwnerModal() {
     const originalSelects = document.querySelectorAll('.layer-select');
     
     if (originalSelects.length === 0) {
-        container.innerHTML = '<p class="owner-description" style="color: #f39c12;">Please enter the player first so audio layers load, then reopen this window.</p>';
+        container.innerHTML = '<p class="owner-description" style="color: #f39c12;">Please click "Enter" on the player first so the audio layers load, then reopen this window.</p>';
         publishBtn.disabled = true;
         overlay.classList.add('active');
         return;
@@ -213,12 +249,13 @@ async function publishToBlockchain() {
             const tokenId = WEB3_CONFIG.layerTokens[normalized] || WEB3_CONFIG.layerTokens[layerId];
             
             if (!tokenId) continue;
+            
             const tx = await contract.useControlToken(tokenId, change.variantIndex);
             statusText.textContent = `Tx submitted for ${layerId}. Waiting for confirmation...`;
             await tx.wait();
         }
         
-        statusText.textContent = "Successfully published state on-chain!";
+        statusText.textContent = "Successfully changed on-chain!";
         statusText.style.color = "#2ecc71";
         
         updates.forEach(layerId => {
@@ -233,6 +270,7 @@ async function publishToBlockchain() {
             statusText.textContent = "";
             publishBtn.disabled = false;
         }, 3000);
+        
     } catch (error) {
         console.error("Transaction failed:", error);
         statusText.textContent = "Transaction rejected or failed.";
@@ -240,5 +278,3 @@ async function publishToBlockchain() {
         publishBtn.disabled = false;
     }
 }
-
-setInterval(injectWeb3UI, 1000);
