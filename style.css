@@ -142,7 +142,8 @@ body.playing .layer-dropdowns { opacity: 0; pointer-events: none; }
     .gateway-content h1 { font-size: 3rem; }
     .buttons-row { gap: 2rem; }
 }
-/* --- Non-Disruptive Web3 Modal & Button Styles --- */
+
+/* --- Web3 UI Extensions --- */
 .wallet-btn {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -154,7 +155,6 @@ body.playing .layer-dropdowns { opacity: 0; pointer-events: none; }
     cursor: pointer;
     transition: all 0.2s ease;
     backdrop-filter: blur(4px);
-    margin-left: 10px;
 }
 .wallet-btn:hover { background: rgba(255, 255, 255, 0.2); }
 .wallet-btn.connected { background: rgba(46, 204, 113, 0.2); border-color: rgba(46, 204, 113, 0.5); }
