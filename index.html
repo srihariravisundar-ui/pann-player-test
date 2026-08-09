@@ -25,8 +25,18 @@
                 <div class="description-container">
                     <p class="description">
                         The seed of all melodies, "பண்" is the truest representation of Tamil music, culture, land and its people. A voyage that connects the past, beholds the present and accompanies into the future, Pann is the beginning of a journey into the world of performed, programmable art. 
+                        <span id="moreText" class="hidden">This 30-minute piece of music written in Tamil, was commissioned and produced by Metapurse and is a first of its kind NFT from India. It had its premiere in New York’s Terminal 5 on the 4th of November 2021 at Dreamverse, the world’s largest NFT exhibition curated by Metapurse. Pann became the ambient music for this historic event that merged the physical and digital realms for the first time, showcasing the pinnacle of NFT art of more than 150 artists from around the world.<br><br>Woven from nine layers of music, each having several variants within it, the Pann master track captures a fresh collaborative performance of 40 musicians and visual artists. It can be heard in 19,440 different combinations, making it a dynamic piece of music with artwork done by Susha, Ghana N B and Vidhya Vijay that evolve along with every changing state of music. While most of the variants were recorded at 2barQ Studios, Chennai, Tamil Nadu by Sujith Sreedhar and Divine Joseph, the cherry on the cake is the live performance of some of the musical and art variants captured during the Dreamverse experience.</span>
                     </p>
+                    <button id="readMoreBtn" class="read-more-btn">Learn More</button>
                 </div>
+                
+                <div class="artists-section">
+                    <p class="artists-label">Featuring Artists</p>
+                    <div class="artists-slider" id="artistsSlider">
+                        <div class="artists-track" id="artistsTrack"></div>
+                    </div>
+                </div>
+
                 <button id="enter-btn">Enter</button>
             </div>
         </div>
@@ -34,17 +44,14 @@
         <div id="player-page" class="page hidden">
             <div class="player-top">
                 <h2>Pann</h2>
-                
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <div class="tag-container" id="tag-container">
-                        </div>
+                    <div class="tag-container" id="tag-container"></div>
                     <button id="connect-wallet-btn" class="wallet-btn">Connect Wallet</button>
                 </div>
             </div>
             
             <div class="player-bottom">
-                <div id="controls" class="controls-container">
-                    </div>
+                <div id="controls" class="controls-container"></div>
                 
                 <div class="transport-dock">
                     <div class="progress-wrapper">
@@ -77,8 +84,7 @@
             <h2 class="serif">Master Stem Controls</h2>
             <p class="owner-description">Modify your owned layers below. Changes will be published to the Ethereum blockchain and reflected on the Master Stem.</p>
             
-            <div id="owner-layer-controls" class="owner-controls-container">
-                </div>
+            <div id="owner-layer-controls" class="owner-controls-container"></div>
             
             <div class="owner-actions">
                 <button id="publish-btn" class="publish-btn" disabled>Publish to Blockchain</button>
