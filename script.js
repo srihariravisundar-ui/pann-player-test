@@ -1,311 +1,584 @@
-// script.js - Unified Pann Audio Engine & Web3 Integration
+(async function () {
+    const USE_LOCAL_GITHUB_FILES = false; 
+    const GITHUB_BASE_URL = "./"; 
 
-const WEB3_CONFIG = {
-    contractAddress: "0x96be3dfdf788b7078ef7514e076ccfd33acfd7cd",
-    chainId: 1, // Ethereum Mainnet
-    layerTokens: {
-        "strings": 4285,
-        "winds": 4286,
-        "ambience": 4287,
-        "rhythm": 4288,
-        "traditional": 4289, 
-        "voices": 4290,
-        "guitars": 4291, 
-        "keys": 4292,
-        "electronic": 4293
-    },
-    abi: [
-        "function balanceOf(address account, uint256 id) view returns (uint256)",
-        "function ownerOf(uint256 tokenId) view returns (address)",
-        "function useControlToken(uint256 tokenId, uint256 variantId)"
-    ]
-};
+    const JSON_URL = "QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq";
+    const IPFS_GATEWAYS = [
+        'https://ipfs.io/ipfs/', 
+        'https://cloudflare-ipfs.com/ipfs/',
+        'https://dweb.link/ipfs/',
+        'https://gateway.pinata.cloud/ipfs/'
+    ];
 
-const web3State = {
-    provider: null,
-    signer: null,
-    address: null,
-    ownedLayers: [],
-    pendingChanges: {}
-};
+    const ARTISTS_LIST = [
+        "Pradeep Kumar", "Anthony Daasan", "Kalyani Nair", "Susha", "Ghana NB",
+        "Vidhya Vijay", "Sujith Sreedhar", "Rakesh", "Manoj Y D", "Pravekha",
+        "M S Yeshwanth", "Praveen Sparsh", "Tapass Naresh", "Kanaxx", "Manonmani",
+        "Ramana Balachandran", "Padmaja Sreenivasan", "Samanvitha G. Sasidaran", "Sushmita Narasimhan", "Nidhi Saraogi",
+        "Sriradha Bharath", "Avantika K", "Fathima Henna", "Pranjal Thakore", "Manoj Krishna",
+        "Himanshu Barot", "Manikandan Chembai", "Aditya Ravindran", "Solomon Ravindar", "Karthik Manickavasakam",
+        "Naveen Narendranath", "Rithu Vysakh", "Nikhil Ram", "Mylai M Karthikeyan", "Bharath Sankar",
+        "Amrit", "Aarvay", "Radar with a K", "Keba Jeremiah", "Shallu Varun",
+        "Jhanu", "Metapurse"
+    ];
 
-// --- ORIGINAL PANN AUDIO & UI ENGINE ---
-(async function() {
-    const jsonUrl = "https://ipfs.io/ipfs/QmepLNcjqgL7o3Z9aN4x3T4J6sQ9x8Z7W5v3Y2x1V0u9Ts"; // Replace with your master json hash if needed, or keep your original loader logic
-    // NOTE: Keep your exact original audio loading and playback logic here. 
-    // Below is the Web3 Event attachment that hooks into your existing UI elements.
+    const state = {
+        metadata: null,
+        audioPool: {}, 
+        visualSlots: {}, 
+        selections: { visuals: {}, audio: {} },
+        isPlaying: false,
+        duration: 0,
+        syncInterval: null,
+        isSeeking: false
+    };
 
-    const enterBtn = document.getElementById('enter-btn');
-    const gatewayPage = document.getElementById('gateway-page');
-    const playerPage = document.getElementById('player-page');
-    const readMoreBtn = document.getElementById('readMoreBtn');
-    const moreText = document.getElementById('moreText');
+    let animationFrameId = null;
 
-    if (enterBtn) {
-        enterBtn.addEventListener('click', () => {
-            if (gatewayPage) gatewayPage.classList.remove('active');
-            if (gatewayPage) gatewayPage.classList.add('hidden');
-            if (playerPage) playerPage.classList.remove('hidden');
-            if (playerPage) playerPage.classList.add('active');
+    const UI = {
+        gatewayPage: document.getElementById("gateway-page"),
+        playerPage: document.getElementById("player-page"),
+        enterBtn: document.getElementById("enterBtn"),
+        artistsContainer: document.getElementById("artists-container"),
+        controls: document.getElementById("controls"),
+        activeTags: document.getElementById("active-tags"),
+        playPauseBtn: document.getElementById("playPauseBtn"),
+        stopBtn: document.getElementById("stopBtn"),
+        mixBtn: document.getElementById("mixBtn"),
+        iconPlay: document.getElementById("icon-play"),
+        iconPause: document.getElementById("icon-pause"),
+        progressBar: document.getElementById("progressBar"),
+        progressFill: document.getElementById("progress-fill"),
+        currentTimeEl: document.getElementById("current-time"),
+        totalTimeEl: document.getElementById("total-time"),
+        loadingOverlay: document.getElementById("loading-overlay"),
+        loadingText: document.getElementById("loading-text"),
+        playerBg: document.getElementById("player-bg"),
+        layerContainer: document.getElementById("layer-container"),
+        learnMoreBtn: document.getElementById("learnMoreBtn"),
+        moreText: document.getElementById("moreText")
+    };
+
+    function populateArtists() {
+        if (!UI.artistsContainer) return;
+        UI.artistsContainer.innerHTML = '';
+        ARTISTS_LIST.forEach(artist => {
+            const tag = document.createElement("span");
+            tag.className = "tag";
+            tag.textContent = artist;
+            UI.artistsContainer.appendChild(tag);
         });
     }
 
-    if (readMoreBtn && moreText) {
-        readMoreBtn.addEventListener('click', () => {
-            moreText.classList.toggle('hidden');
-            readMoreBtn.textContent = moreText.classList.contains('hidden') ? 'Learn More' : 'Show Less';
-        });
+    function formatTime(seconds) {
+        if (!seconds || isNaN(seconds)) return "0:00";
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m}:${s.toString().padStart(2, '0')}`;
     }
 
-    // Initialize Web3 Event Listeners
-    initWeb3Listeners();
-})();
-
-// --- WEB3 INTEGRATION LAYER ---
-function initWeb3Listeners() {
-    const connectBtn = document.getElementById('connect-wallet-btn');
-    const logoutBtn = document.getElementById('logout-wallet-btn');
-    const closeBtn = document.getElementById('close-owner-tab');
-    const publishBtn = document.getElementById('publish-btn');
-
-    if (connectBtn) {
-        connectBtn.addEventListener('click', async () => {
-            if (web3State.address) {
-                openOwnerModal();
-            } else {
-                await connectWallet();
-            }
-        });
+    function getUrls(cid) {
+        if (!cid) return [];
+        if (cid.startsWith("http")) return [cid];
+        const hash = cid.replace('ipfs://', '');
+        if (USE_LOCAL_GITHUB_FILES) return [`${GITHUB_BASE_URL}${hash}`];
+        return IPFS_GATEWAYS.map(gw => `${gw}${hash}`);
     }
 
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', logoutWallet);
-    }
-
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
-            document.getElementById('owner-tab-overlay').classList.remove('active');
-        });
-    }
-
-    if (publishBtn) {
-        publishBtn.addEventListener('click', publishToBlockchain);
-    }
-}
-
-async function connectWallet() {
-    if (typeof window.ethereum === 'undefined') {
-        alert("MetaMask is not installed. Please install a Web3 wallet.");
-        return;
-    }
-
-    try {
-        const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-        const network = await provider.getNetwork();
-        
-        if (network.chainId !== WEB3_CONFIG.chainId) {
-            await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: ethers.utils.hexValue(WEB3_CONFIG.chainId) }],
-            });
-        }
-
-        await provider.send("eth_requestAccounts", []);
-        const signer = provider.getSigner();
-        const address = await signer.getAddress();
-        
-        web3State.provider = provider;
-        web3State.signer = signer;
-        web3State.address = address;
-
-        const connectBtn = document.getElementById('connect-wallet-btn');
-        const logoutBtn = document.getElementById('logout-wallet-btn');
-
-        if (connectBtn) {
-            connectBtn.innerHTML = `⚙ ${address.slice(0, 6)}...${address.slice(-4)}`;
-            connectBtn.classList.add('connected');
-        }
-        if (logoutBtn) {
-            logoutBtn.classList.remove('hidden');
-        }
-        
-        await verifyOwnership();
-        openOwnerModal();
-    } catch (error) {
-        console.error("Wallet connection failed:", error);
-    }
-}
-
-function logoutWallet() {
-    web3State.provider = null;
-    web3State.signer = null;
-    web3State.address = null;
-    web3State.ownedLayers = [];
-    web3State.pendingChanges = {};
-
-    const connectBtn = document.getElementById('connect-wallet-btn');
-    const logoutBtn = document.getElementById('logout-wallet-btn');
-
-    if (connectBtn) {
-        connectBtn.innerHTML = 'Connect Wallet';
-        connectBtn.classList.remove('connected');
-    }
-    if (logoutBtn) {
-        logoutBtn.classList.add('hidden');
-    }
-
-    document.getElementById('owner-tab-overlay').classList.remove('active');
-    alert("Successfully logged out of MetaMask.");
-}
-
-async function verifyOwnership() {
-    if (!web3State.signer) return;
-    web3State.ownedLayers = [];
-    
-    try {
-        const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, web3State.provider);
-        
-        for (const [layerId, tokenId] of Object.entries(WEB3_CONFIG.layerTokens)) {
-            if (tokenId === 0) continue;
+    function extractRealName(opt, index) {
+        if (!opt) return `Option ${index + 1}`;
+        if (opt.label) return opt.label;
+        if (opt.name) return opt.name;
+        if (opt.value) return opt.value;
+        if (opt.uri) {
             try {
-                const balance = await contract.balanceOf(web3State.address, tokenId);
-                if (balance.gt(0)) {
-                    web3State.ownedLayers.push(layerId);
-                    continue;
+                let cleanName = opt.uri.split('/').pop().split('.')[0].replace(/[-_]/g, ' ').trim();
+                if (cleanName && cleanName.length < 30 && !cleanName.startsWith('Qm')) {
+                    return cleanName.replace(/\b\w/g, char => char.toUpperCase());
                 }
+            } catch (e) {}
+        }
+        return `Option ${index + 1}`;
+    }
+
+    function renderTags() {
+        if (!UI.activeTags) return;
+        UI.activeTags.innerHTML = '';
+        UI.controls.querySelectorAll('.layer-select').forEach(select => {
+            const opt = select.options[select.selectedIndex];
+            if (opt) {
+                const tag = document.createElement("span");
+                tag.className = "playing-tag";
+                tag.textContent = opt.text;
+                UI.activeTags.appendChild(tag);
+            }
+        });
+    }
+
+    async function fetchJSON() {
+        for (const gateway of IPFS_GATEWAYS) {
+            try {
+                const res = await fetch(`${gateway}${JSON_URL}`);
+                if (res.ok) return await res.json();
             } catch (e) {
-                try {
-                    const owner = await contract.ownerOf(tokenId);
-                    if (owner.toLowerCase() === web3State.address.toLowerCase()) {
-                        web3State.ownedLayers.push(layerId);
-                    }
-                } catch (err) {}
+                console.warn(`Gateway timeout...`);
             }
         }
-    } catch (error) {
-        console.error("Ownership verification error:", error);
+        throw new Error("All IPFS gateways failed to load metadata.");
     }
-}
 
-function openOwnerModal() {
-    const overlay = document.getElementById('owner-tab-overlay');
-    const container = document.getElementById('owner-layer-controls');
-    const publishBtn = document.getElementById('publish-btn');
-    
-    container.innerHTML = '';
-    web3State.pendingChanges = {};
-    
-    if (web3State.ownedLayers.length === 0) {
-        container.innerHTML = '<p class="owner-description" style="color: #e74c3c;">Your connected wallet does not own any layer control tokens for this Master Stem.</p>';
-        publishBtn.disabled = true;
-        overlay.classList.add('active');
-        return;
-    }
-    
-    publishBtn.disabled = false;
-    const originalSelects = document.querySelectorAll('.layer-select');
-    
-    if (originalSelects.length === 0) {
-        container.innerHTML = '<p class="owner-description" style="color: #f39c12;">Please click "Enter" on the player first so the audio layers load, then reopen this window.</p>';
-        publishBtn.disabled = true;
-        overlay.classList.add('active');
-        return;
-    }
-    
-    originalSelects.forEach(originalSelect => {
-        const layerId = originalSelect.dataset.layerId || originalSelect.id.replace('select-', '');
-        const normalized = layerId.toLowerCase().replace(/\s+/g, '-');
+    async function loadAudioStreams() {
+        UI.loadingOverlay.classList.remove('hidden');
+        if (UI.loadingText) UI.loadingText.textContent = "Connecting Layers...";
+        if (UI.playPauseBtn) UI.playPauseBtn.disabled = true;
+
+        const activeCIDs = Object.values(state.selections.audio).filter(cid => cid);
         
-        const row = document.createElement('div');
-        row.className = 'owner-control-row';
-        
-        const label = document.createElement('label');
-        label.className = 'owner-control-label';
-        
-        const select = document.createElement('select');
-        select.className = 'owner-control-select';
-        
-        Array.from(originalSelect.options).forEach((opt, index) => {
-            const newOpt = document.createElement('option');
-            newOpt.value = opt.value;
-            newOpt.textContent = opt.textContent;
-            newOpt.dataset.variantIndex = index;
-            if (originalSelect.value === opt.value) newOpt.selected = true;
-            select.appendChild(newOpt);
-        });
-        
-        if (web3State.ownedLayers.includes(normalized) || web3State.ownedLayers.includes(layerId)) {
-            label.textContent = `${layerId.charAt(0).toUpperCase() + layerId.slice(1)} (Owned)`;
-            label.classList.add('owned-layer-text');
-            select.addEventListener('change', (e) => {
-                const opt = e.target.options[e.target.selectedIndex];
-                web3State.pendingChanges[layerId] = {
-                    originalElement: originalSelect,
-                    newValue: e.target.value,
-                    variantIndex: opt.dataset.variantIndex
+        const loadPromises = Object.keys(state.selections.audio).map(layerId => {
+            return new Promise((resolve) => {
+                const cid = state.selections.audio[layerId];
+                const audioNode = state.audioPool[layerId]; 
+                
+                if (!cid || !audioNode) { resolve(null); return; }
+
+                const urls = getUrls(cid);
+                if (urls.length === 0) { resolve(null); return; }
+
+                if (audioNode.src && urls.some(u => audioNode.src.includes(u.split('/').pop()))) {
+                    resolve({ layerId, audioNode });
+                    return;
+                }
+
+                audioNode.volume = 0; 
+                let attempt = 0;
+
+                const onCanPlay = () => {
+                    if (audioNode.duration > state.duration) state.duration = audioNode.duration;
+                    resolve({ layerId, audioNode });
                 };
-            });
-        } else {
-            label.textContent = `${layerId.charAt(0).toUpperCase() + layerId.slice(1)} (Locked)`;
-            select.disabled = true;
-        }
-        
-        row.appendChild(label);
-        row.appendChild(select);
-        container.appendChild(row);
-    });
-    
-    overlay.classList.add('active');
-}
 
-async function publishToBlockchain() {
-    const statusText = document.getElementById('tx-status');
-    const publishBtn = document.getElementById('publish-btn');
-    const updates = Object.keys(web3State.pendingChanges);
-    
-    if (updates.length === 0) {
-        statusText.textContent = "No changes to publish.";
-        return;
-    }
-    
-    statusText.textContent = "Awaiting signature in MetaMask...";
-    statusText.style.color = "#f39c12";
-    publishBtn.disabled = true;
-    
-    try {
-        const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, web3State.signer);
-        for (const layerId of updates) {
-            const normalized = layerId.toLowerCase().replace(/\s+/g, '-');
-            const change = web3State.pendingChanges[layerId];
-            const tokenId = WEB3_CONFIG.layerTokens[normalized] || WEB3_CONFIG.layerTokens[layerId];
-            
-            if (!tokenId) continue;
-            
-            const tx = await contract.useControlToken(tokenId, change.variantIndex);
-            statusText.textContent = `Tx submitted for ${layerId}. Waiting for confirmation...`;
-            await tx.wait();
-        }
-        
-        statusText.textContent = "Successfully changed on-chain!";
-        statusText.style.color = "#2ecc71";
-        
-        updates.forEach(layerId => {
-            const change = web3State.pendingChanges[layerId];
-            change.originalElement.value = change.newValue;
-            change.originalElement.dispatchEvent(new Event('change'));
+                audioNode.addEventListener('canplaythrough', onCanPlay, { once: true });
+                audioNode.addEventListener('loadeddata', onCanPlay, { once: true });
+
+                audioNode.addEventListener('error', () => { 
+                    attempt++;
+                    if (attempt < urls.length) {
+                        audioNode.src = urls[attempt];
+                        audioNode.load();
+                    } else { 
+                        resolve(null); 
+                    }
+                }); 
+                
+                audioNode.src = urls[attempt];
+                audioNode.load();
+            });
         });
-        
-        web3State.pendingChanges = {};
-        setTimeout(() => {
-            document.getElementById('owner-tab-overlay').classList.remove('active');
-            statusText.textContent = "";
-            publishBtn.disabled = false;
-        }, 3000);
-        
-    } catch (error) {
-        console.error("Transaction failed:", error);
-        statusText.textContent = "Transaction rejected or failed.";
-        statusText.style.color = "#e74c3c";
-        publishBtn.disabled = false;
+
+        await Promise.all(loadPromises);
+
+        let syncTime = 0;
+        const currentActiveNodes = Object.values(state.audioPool).filter(n => !n.paused && n.volume > 0);
+        if (currentActiveNodes.length > 0) syncTime = currentActiveNodes[0].currentTime;
+
+        Object.keys(state.selections.audio).forEach(layerId => {
+            const cid = state.selections.audio[layerId];
+            const node = state.audioPool[layerId];
+            
+            if (cid && node) {
+                if (state.isPlaying) {
+                    node.currentTime = syncTime;
+                    const p = node.play();
+                    if (p !== undefined) p.catch(() => {});
+                }
+            } else if (node) {
+                node.pause();
+            }
+        });
+
+        if (state.isPlaying) {
+            enforceSync();
+            setTimeout(() => { enforceSync(); }, 200);
+            
+            Object.keys(state.selections.audio).forEach(layerId => {
+                if (state.selections.audio[layerId]) state.audioPool[layerId].volume = 1;
+            });
+        }
+
+        if (UI.totalTimeEl) UI.totalTimeEl.textContent = formatTime(state.duration);
+        if (UI.playPauseBtn) UI.playPauseBtn.disabled = false;
+        UI.loadingOverlay.classList.add('hidden');
     }
-}
+
+    function enforceSync() {
+        if (state.isSeeking) return; // Prevent sync from firing during a seek operation
+
+        const nodes = Object.values(state.audioPool).filter(n => !n.paused && n.src);
+        if (nodes.length <= 1) return;
+        
+        const master = nodes[0];
+        nodes.forEach((node, i) => {
+            if (i === 0) return;
+            const drift = node.currentTime - master.currentTime;
+            
+            if (Math.abs(drift) > 0.2) {
+                node.currentTime = master.currentTime;
+            } else if (Math.abs(drift) > 0.03) {
+                node.playbackRate = master.playbackRate - (drift * 0.4); 
+            } else {
+                node.playbackRate = 1.0;
+            }
+        });
+    }
+
+    function playAudio(targetTime = null) {
+        const nodes = Object.values(state.audioPool).filter(n => n.src);
+        if (nodes.length === 0) return;
+
+        const timeToSet = targetTime !== null ? targetTime : (nodes[0].currentTime || 0);
+        
+        nodes.forEach(node => { 
+            node.volume = 0;
+            node.currentTime = timeToSet; 
+            const p = node.play();
+            if (p !== undefined) { p.catch(err => console.warn("Safari blocked play", err)); }
+        });
+
+        state.isPlaying = true;
+        document.body.classList.add('playing'); 
+        if (UI.iconPlay) UI.iconPlay.classList.add('hidden');
+        if (UI.iconPause) UI.iconPause.classList.remove('hidden');
+        renderTags();
+
+        setTimeout(() => {
+            enforceSync();
+            nodes.forEach(node => { node.volume = 1; });
+        }, 250);
+
+        if (state.syncInterval) clearInterval(state.syncInterval);
+        state.syncInterval = setInterval(enforceSync, 600); 
+        requestAnimationFrame(updateLoop);
+    }
+
+    function pauseAudio() {
+        Object.values(state.audioPool).forEach(node => node.pause());
+        state.isPlaying = false;
+        document.body.classList.remove('playing'); 
+        if (UI.iconPlay) UI.iconPlay.classList.remove('hidden');
+        if (UI.iconPause) UI.iconPause.classList.add('hidden');
+        if (state.syncInterval) clearInterval(state.syncInterval);
+    }
+
+    function stopAudio() {
+        Object.values(state.audioPool).forEach(node => {
+            node.pause();
+            node.currentTime = 0;
+            node.playbackRate = 1.0;
+        });
+        state.isPlaying = false;
+        document.body.classList.remove('playing'); 
+        if (UI.iconPlay) UI.iconPlay.classList.remove('hidden');
+        if (UI.iconPause) UI.iconPause.classList.add('hidden');
+        if (UI.progressFill) UI.progressFill.style.width = '0%';
+        if (UI.currentTimeEl) UI.currentTimeEl.textContent = '0:00';
+        if (state.syncInterval) clearInterval(state.syncInterval);
+        cancelAnimationFrame(animationFrameId);
+    }
+
+    // --- THE ABSOLUTE BUFFER LOCK FIX ---
+    async function seekTo(targetTime) {
+        if (!state.duration || isNaN(targetTime)) return;
+
+        state.isSeeking = true;
+        if (state.syncInterval) clearInterval(state.syncInterval);
+
+        const nodes = Object.values(state.audioPool).filter(n => n.src);
+        if (nodes.length === 0) {
+            state.isSeeking = false;
+            return;
+        }
+
+        // 1. Instantly update UI and show loading spinner
+        const percent = (targetTime / state.duration) * 100;
+        if (UI.progressFill) UI.progressFill.style.width = `${percent}%`;
+        if (UI.currentTimeEl) UI.currentTimeEl.textContent = formatTime(targetTime);
+
+        UI.loadingOverlay.classList.remove('hidden');
+        if (UI.loadingText) UI.loadingText.textContent = "Syncing Layers...";
+
+        // 2. Pause and mute all tracks so they don't start playing staggeringly
+        nodes.forEach(node => {
+            node.pause();
+            node.volume = 0;
+            node.playbackRate = 1.0; // Reset any previous pitch bending
+        });
+
+        // 3. Command the seek and wait for EVERY node to buffer independently
+        const seekPromises = nodes.map(node => {
+            return new Promise(resolve => {
+                const onReady = () => {
+                    node.removeEventListener('seeked', onReady);
+                    node.removeEventListener('canplay', onReady);
+                    resolve();
+                };
+                
+                node.addEventListener('seeked', onReady);
+                node.addEventListener('canplay', onReady);
+                
+                node.currentTime = targetTime;
+
+                // Failsafe: if a bad network hangs the event, resolve after 4s to prevent permanent lock
+                setTimeout(resolve, 4000); 
+            });
+        });
+
+        await Promise.all(seekPromises);
+
+        // 4. Hard-snap them all to the exact same millisecond one last time to fix micro-drifts during the wait
+        nodes.forEach(node => {
+            node.currentTime = targetTime;
+            node.volume = 1; // Restore volume
+        });
+
+        // 5. Safely resume
+        state.isSeeking = false;
+        UI.loadingOverlay.classList.add('hidden');
+
+        if (state.isPlaying) {
+            nodes.forEach(node => {
+                const p = node.play();
+                if (p !== undefined) p.catch(() => {});
+            });
+            state.syncInterval = setInterval(enforceSync, 600);
+        }
+    }
+
+    function handleProgressInteraction(e) {
+        if (!state.duration) return;
+        const rect = UI.progressBar.getBoundingClientRect();
+        
+        let clientX = e.clientX;
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+            clientX = e.changedTouches[0].clientX;
+        }
+
+        if (clientX === undefined || clientX === null) return;
+
+        const percentage = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        const targetTime = percentage * state.duration;
+
+        seekTo(targetTime);
+    }
+
+    function updateLoop() {
+        if (!state.isPlaying || state.isSeeking) return;
+        const nodes = Object.values(state.audioPool).filter(n => !n.paused && n.src);
+        if (nodes.length > 0 && UI.progressFill && UI.currentTimeEl) {
+            const current = nodes[0].currentTime;
+            UI.progressFill.style.width = `${(current / state.duration) * 100}%`;
+            UI.currentTimeEl.textContent = formatTime(current);
+        }
+        animationFrameId = requestAnimationFrame(updateLoop);
+    }
+
+    function updateVisuals(changedLayerId = null) {
+        if (!state.metadata) return;
+        const visuals = (state.metadata.layout?.layers || []).slice(0, 10);
+
+        visuals.forEach((layer) => {
+            const layerId = layer.id;
+            
+            if (changedLayerId && changedLayerId !== layerId) return;
+
+            const cid = state.selections.visuals[layerId];
+            const slot = state.visualSlots[layerId]; 
+            
+            if (!slot) return;
+            
+            slot.dataset.targetCid = cid;
+
+            if (!cid) {
+                slot.innerHTML = '';
+                return;
+            }
+
+            const urls = getUrls(cid);
+            if (urls.length === 0) return;
+
+            const isString = layerId.toLowerCase().includes('string');
+            const img = new Image();
+            img.className = isString ? 'bg-layer-cover' : 'layerImage';
+
+            let attempt = 0;
+            img.onload = () => {
+                if (slot.dataset.targetCid !== cid) return;
+
+                const oldImages = Array.from(slot.querySelectorAll('img'));
+                
+                oldImages.forEach(oldImg => {
+                    oldImg.classList.remove('layer-visible');
+                    setTimeout(() => { if (oldImg.parentNode) oldImg.remove(); }, 1200);
+                });
+
+                slot.appendChild(img);
+                
+                requestAnimationFrame(() => {
+                    img.classList.add('layer-visible');
+                });
+            };
+            img.onerror = () => { attempt++; if (attempt < urls.length) img.src = urls[attempt]; };
+            img.src = urls[attempt];
+        });
+    }
+
+    async function handleChange(layerId, visualCid, audioCid) {
+        state.selections.visuals[layerId] = visualCid;
+        state.selections.audio[layerId] = audioCid;
+        renderTags(); 
+        
+        updateVisuals(layerId); 
+        await loadAudioStreams(); 
+    }
+
+    async function init() {
+        populateArtists();
+        
+        try {
+            state.metadata = await fetchJSON();
+            const visuals = (state.metadata.layout?.layers || []).slice(0, 10);
+            const audios = (state.metadata["audio-layout"]?.layers || []).slice(0, 10);
+
+            if (UI.controls) UI.controls.innerHTML = '';
+            
+            visuals.forEach((layer, index) => {
+                const layerId = layer.id || `layer_${index}`;
+                
+                const audio = new Audio();
+                audio.crossOrigin = "anonymous";
+                audio.loop = true;
+                audio.preload = "auto";
+                audio.preservesPitch = false;
+                state.audioPool[layerId] = audio;
+
+                const slot = document.createElement('div');
+                slot.className = 'layer-slot';
+                slot.style.zIndex = index + 5; 
+                
+                const isString = layerId.toLowerCase().includes('string');
+                if (isString) {
+                    UI.playerBg.appendChild(slot);
+                } else {
+                    UI.layerContainer.appendChild(slot);
+                }
+                state.visualSlots[layerId] = slot;
+
+                if (layer.states?.options?.length > 0) {
+                    const audioLayer = audios[index];
+                    
+                    const div = document.createElement("div");
+                    div.className = "dropdown-group";
+                    
+                    const label = document.createElement("label");
+                    label.textContent = layer.name || layerId.replace(/[_-]/g, ' ');
+                    
+                    const select = document.createElement("select");
+                    select.className = "layer-select";
+                    select.dataset.layerId = layerId; 
+                    
+                    layer.states.options.forEach((opt, idx) => {
+                        const option = document.createElement("option");
+                        const audioCid = audioLayer?.states?.options?.[idx]?.uri || "";
+                        option.value = JSON.stringify({ visual: opt.uri, audio: audioCid });
+                        option.textContent = extractRealName(opt, idx);
+                        select.appendChild(option);
+                    });
+
+                    div.appendChild(label);
+                    div.appendChild(select);
+                    UI.controls.appendChild(div);
+
+                    select.addEventListener("change", (e) => {
+                        const data = JSON.parse(e.target.value);
+                        handleChange(layerId, data.visual, data.audio);
+                    });
+                }
+            });
+
+            UI.controls.querySelectorAll('.layer-select').forEach(select => {
+                select.selectedIndex = Math.floor(Math.random() * select.options.length);
+                const data = JSON.parse(select.value);
+                state.selections.visuals[select.dataset.layerId] = data.visual;
+                state.selections.audio[select.dataset.layerId] = data.audio;
+            });
+
+            renderTags();
+            updateVisuals(); 
+
+        } catch (e) {
+            console.error("Failed to load metadata", e);
+        }
+    }
+
+    if (UI.learnMoreBtn && UI.moreText) {
+        UI.learnMoreBtn.addEventListener('click', () => {
+            UI.moreText.classList.toggle('hidden');
+            UI.learnMoreBtn.textContent = UI.moreText.classList.contains('hidden') ? "Learn more" : "Show less";
+        });
+    }
+
+    if (UI.enterBtn && UI.gatewayPage && UI.playerPage) {
+        UI.enterBtn.addEventListener('click', async () => {
+            
+            Object.values(state.audioPool).forEach(node => {
+                node.volume = 0;
+                const p = node.play();
+                if (p !== undefined) p.catch(()=>{});
+                node.pause();
+            });
+
+            UI.gatewayPage.classList.remove('active');
+            setTimeout(() => {
+                UI.gatewayPage.classList.add('hidden');
+                UI.playerPage.classList.remove('hidden');
+                setTimeout(() => UI.playerPage.classList.add('active'), 50);
+            }, 600);
+
+            await loadAudioStreams();
+        });
+    }
+
+    if (UI.playPauseBtn) {
+        UI.playPauseBtn.addEventListener('click', async () => {
+            if (state.isPlaying) pauseAudio();
+            else playAudio();
+        });
+    }
+
+    if (UI.stopBtn) {
+        UI.stopBtn.addEventListener('click', () => stopAudio());
+    }
+
+    if (UI.mixBtn) {
+        UI.mixBtn.addEventListener('click', async () => {
+            UI.controls.querySelectorAll('.layer-select').forEach(select => {
+                select.selectedIndex = Math.floor(Math.random() * select.options.length);
+                const data = JSON.parse(select.value);
+                state.selections.visuals[select.dataset.layerId] = data.visual;
+                state.selections.audio[select.dataset.layerId] = data.audio;
+            });
+
+            renderTags();
+            updateVisuals();
+            await loadAudioStreams();
+        });
+    }
+
+    if (UI.progressBar) {
+        UI.progressBar.addEventListener('click', handleProgressInteraction);
+        UI.progressBar.addEventListener('touchstart', handleProgressInteraction, { passive: true });
+    }
+
+    init();
+})();
