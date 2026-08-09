@@ -1,4 +1,4 @@
-// web3.js - Safe Non-Blocking Web3 Integration for Pann
+// web3.js - Isolated Non-Invasive Web3 Plugin for Pann
 
 const WEB3_CONFIG = {
     contractAddress: "0x96be3dfdf788b7078ef7514e076ccfd33acfd7cd",
@@ -29,35 +29,42 @@ const web3State = {
     pendingChanges: {}
 };
 
-// Safe DOM observer initialization on load
+// Safely mount Web3 controls once the DOM is ready without disrupting script.js
 window.addEventListener('DOMContentLoaded', () => {
-    try {
-        setupWeb3UI();
-    } catch (e) {
-        console.error("Web3 initialization error:", e);
-    }
+    setTimeout(initWeb3Plugin, 500);
 });
 
-function setupWeb3UI() {
-    // Non-blocking observer to safely mount the wallet button when player-top appears
-    const observer = new MutationObserver((mutations, obs) => {
-        const playerTop = document.querySelector('.player-top');
-        if (playerTop && !document.getElementById('connect-wallet-btn')) {
-            const walletBtn = document.createElement('button');
-            walletBtn.id = 'connect-wallet-btn';
-            walletBtn.className = 'wallet-btn';
-            walletBtn.textContent = 'Connect Wallet';
-            walletBtn.addEventListener('click', async () => {
-                if (web3State.address) openOwnerModal();
-                else await connectWallet();
-            });
-            playerTop.appendChild(walletBtn);
-            obs.disconnect(); // Stop observing once injected
-        }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
+function initWeb3Plugin() {
+    const playerTop = document.querySelector('.player-top');
+    if (playerTop && !document.getElementById('connect-wallet-btn')) {
+        const container = document.createElement('div');
+        container.style.display = 'flex';
+        container.style.alignItems = 'center';
+        container.style.gap = '10px';
+        container.style.pointerEvents = 'auto';
 
-    // Safely append modal container to body
+        const walletBtn = document.createElement('button');
+        walletBtn.id = 'connect-wallet-btn';
+        walletBtn.className = 'wallet-btn';
+        walletBtn.textContent = 'Connect Wallet';
+        walletBtn.addEventListener('click', async () => {
+            if (web3State.address) openOwnerModal();
+            else await connectWallet();
+        });
+
+        const logoutBtn = document.createElement('button');
+        logoutBtn.id = 'logout-wallet-btn';
+        logoutBtn.className = 'wallet-btn hidden';
+        logoutBtn.style.background = 'rgba(231,76,60,0.2)';
+        logoutBtn.style.borderColor = 'rgba(231,76,60,0.5)';
+        logoutBtn.textContent = 'Logout';
+        logoutBtn.addEventListener('click', logoutWallet);
+
+        container.appendChild(walletBtn);
+        container.appendChild(logoutBtn);
+        playerTop.appendChild(container);
+    }
+
     if (!document.getElementById('owner-tab-overlay')) {
         const overlay = document.createElement('div');
         overlay.id = 'owner-tab-overlay';
@@ -85,26 +92,18 @@ function setupWeb3UI() {
 
 async function connectWallet() {
     if (typeof window.ethereum === 'undefined') {
-        alert("MetaMask is not installed. Please install a Web3 wallet to continue.");
+        alert("MetaMask is not installed. Please install a Web3 wallet.");
         return;
     }
-
     try {
         const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-        
         const network = await provider.getNetwork();
         if (network.chainId !== WEB3_CONFIG.chainId) {
-            try {
-                await window.ethereum.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: ethers.utils.hexValue(WEB3_CONFIG.chainId) }],
-                });
-            } catch (switchError) {
-                alert("Please switch your MetaMask network to Ethereum Mainnet.");
-                return;
-            }
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: ethers.utils.hexValue(WEB3_CONFIG.chainId) }],
+            });
         }
-
         await provider.send("eth_requestAccounts", []);
         const signer = provider.getSigner();
         const address = await signer.getAddress();
@@ -114,26 +113,42 @@ async function connectWallet() {
         web3State.address = address;
 
         const connectBtn = document.getElementById('connect-wallet-btn');
+        const logoutBtn = document.getElementById('logout-wallet-btn');
         if (connectBtn) {
             connectBtn.innerHTML = `⚙ ${address.slice(0, 6)}...${address.slice(-4)}`;
             connectBtn.classList.add('connected');
         }
+        if (logoutBtn) logoutBtn.classList.remove('hidden');
         
         await verifyOwnership();
         openOwnerModal();
-        
     } catch (error) {
         console.error("Wallet connection failed:", error);
     }
 }
 
+function logoutWallet() {
+    web3State.provider = null;
+    web3State.signer = null;
+    web3State.address = null;
+    web3State.ownedLayers = [];
+    web3State.pendingChanges = {};
+
+    const connectBtn = document.getElementById('connect-wallet-btn');
+    const logoutBtn = document.getElementById('logout-wallet-btn');
+    if (connectBtn) {
+        connectBtn.innerHTML = 'Connect Wallet';
+        connectBtn.classList.remove('connected');
+    }
+    if (logoutBtn) logoutBtn.classList.add('hidden');
+    document.getElementById('owner-tab-overlay').classList.remove('active');
+}
+
 async function verifyOwnership() {
     if (!web3State.signer) return;
     web3State.ownedLayers = [];
-    
     try {
         const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, web3State.provider);
-        
         for (const [layerId, tokenId] of Object.entries(WEB3_CONFIG.layerTokens)) {
             if (tokenId === 0) continue;
             try {
