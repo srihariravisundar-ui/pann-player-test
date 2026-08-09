@@ -1,6 +1,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 html, body {
+    /* Locks iOS viewport */
     position: fixed; inset: 0; overflow: hidden;
     background: #000; color: #fff;
     font-family: 'Inter', sans-serif;
@@ -9,6 +10,7 @@ html, body {
 
 h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
 
+/* Perfect Scaling for Background vs Foreground */
 .background-container {
     position: absolute; inset: 0; 
     width: 100%; height: 100%;
@@ -22,11 +24,12 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
     display: flex; align-items: center; justify-content: center;
 }
 
+/* THE ANIMATION FIX: Animates the container, NOT the images. Prevents iOS Crash. */
 .artwork-container {
     position: relative;
     width: 85vw; height: 85vw; max-width: 75vh; max-height: 75vh;
     animation: floatArtwork 8s ease-in-out infinite;
-    transform: translateZ(0);
+    transform: translateZ(0); /* Hardware acceleration */
 }
 
 @keyframes floatArtwork {
@@ -34,11 +37,13 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
     50% { transform: translateY(-12px); }
 }
 
+/* Background is strictly COVER */
 .bg-layer-cover {
     position: absolute; width: 100%; height: 100%;
     object-fit: cover; opacity: 0; transition: opacity 1.5s ease;
 }
 
+/* Artwork layers are strictly CONTAIN */
 .layerImage {
     position: absolute; inset: 0;
     width: 100%; height: 100%;
@@ -47,6 +52,7 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
 
 .layer-visible { opacity: 1 !important; }
 
+/* UI Overlay */
 .ui-container {
     position: absolute; inset: 0; z-index: 100;
     pointer-events: none; display: flex; flex-direction: column;
@@ -59,6 +65,7 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
 .page.active { opacity: 1; pointer-events: auto; }
 .hidden { display: none !important; }
 
+/* Gateway */
 #gateway-page {
     align-items: center; justify-content: center;
     background: rgba(0,0,0,0.8);
@@ -71,27 +78,27 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
 .description { font-size: 0.85rem; line-height: 1.6; color: #ccc; }
 .text-link { background: none; border: none; color: #fff; text-decoration: underline; cursor: pointer; font-family: 'Inter'; }
 
-.primary-btn, #enter-btn {
+.primary-btn {
     background: #fff; color: #000; border: none; padding: 1rem 2rem;
     font-family: 'Inter', sans-serif; text-transform: uppercase; letter-spacing: 2px;
     font-size: 0.85rem; cursor: pointer; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 
 .artists-section { margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem; }
-.artists-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: #aaa; margin-bottom: 1rem; }
-.artists-slider { width: 100%; overflow: hidden; position: relative; }
-.artists-track { display: flex; gap: 2rem; white-space: nowrap; animation: scrollArtists 25s linear infinite; }
-.artist-item { font-size: 0.85rem; color: #fff; }
+.gateway-tags { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.gateway-tags .tag { font-size: 0.7rem; color: #aaa; text-transform: uppercase; }
 
-@keyframes scrollArtists {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-}
-
+/* Player Page */
 #player-page { justify-content: space-between; }
-.player-top { padding: max(20px, env(safe-area-inset-top)) 20px 20px; pointer-events: none; display: flex; justify-content: space-between; align-items: center; }
-.player-top h2 { font-size: 1.5rem; }
-.tag-container { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+.player-top-left { padding: max(20px, env(safe-area-inset-top)) 20px 20px; pointer-events: none; }
+.tags-stack { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+
+.playing-tag {
+    font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #fff;
+    text-shadow: 0px 2px 6px rgba(0,0,0,1), 0px 0px 4px rgba(0,0,0,0.8);
+    opacity: 0; transition: opacity 0.5s ease;
+}
+body.playing .playing-tag { opacity: 1; }
 
 .player-bottom {
     padding: 20px 20px max(20px, env(safe-area-inset-bottom));
@@ -99,10 +106,11 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
     background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
 }
 
-.controls-container {
+.layer-dropdowns {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem 2rem;
     max-width: 800px; margin: 0 auto; width: 100%; transition: opacity 0.5s ease;
 }
+body.playing .layer-dropdowns { opacity: 0; pointer-events: none; }
 
 .dropdown-group { display: flex; flex-direction: column; gap: 4px; }
 .dropdown-group label { font-family: 'Playfair Display', serif; font-size: 0.9rem; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.9); }
@@ -122,39 +130,15 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
 .icon-btn { background: transparent; border: none; cursor: pointer; padding: 8px; transition: transform 0.2s; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.8)); }
 .icon-btn:active { transform: scale(0.9); }
 
-/* --- Web3 Extension Styles --- */
-.wallet-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: #fff; font-family: 'Inter', sans-serif;
-    padding: 6px 14px; border-radius: 20px; font-size: 0.8rem;
-    cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(4px);
-    pointer-events: auto; margin-left: 10px;
+#loading-overlay {
+    position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.8);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
 }
-.wallet-btn:hover { background: rgba(255, 255, 255, 0.2); }
-.wallet-btn.connected { background: rgba(46, 204, 113, 0.2); border-color: rgba(46, 204, 113, 0.5); }
+.spinner { width: 30px; height: 30px; border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
 
-.owner-overlay {
-    position: fixed; inset: 0; z-index: 9999;
-    background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px);
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+@media (max-width: 768px) {
+    .layer-dropdowns { grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+    .gateway-content h1 { font-size: 3rem; }
+    .buttons-row { gap: 2rem; }
 }
-.owner-overlay.active { opacity: 1; pointer-events: auto; }
-.owner-modal-content {
-    background: #111; border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px;
-    position: relative; display: flex; flex-direction: column; gap: 1.5rem;
-}
-.close-btn { position: absolute; top: 1rem; right: 1.5rem; background: transparent; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; }
-.owner-description { font-size: 0.9rem; color: rgba(255, 255, 255, 0.6); line-height: 1.4; }
-.owner-controls-container { display: flex; flex-direction: column; gap: 1rem; background: #000; padding: 1rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05); }
-.owner-control-row { display: flex; justify-content: space-between; align-items: center; }
-.owner-control-label { font-size: 0.9rem; color: rgba(255, 255, 255, 0.5); }
-.owner-control-label.owned-layer-text { color: #fff; font-weight: 500; }
-.owner-control-select { background: #222; color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 6px; font-family: inherit; }
-.owner-control-select:disabled { opacity: 0.5; cursor: not-allowed; }
-.owner-actions { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
-.publish-btn { background: #fff; color: #000; border: none; padding: 12px 24px; border-radius: 24px; font-family: 'Inter', sans-serif; font-weight: 500; cursor: pointer; width: 100%; }
-.publish-btn:disabled { background: #333; color: #777; cursor: not-allowed; }
-.tx-status { font-size: 0.85rem; text-align: center; height: 1rem; color: #fff; }
