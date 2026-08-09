@@ -1,16 +1,12 @@
 /**
  * Pann - Web3 Interactive Music Player
- * 100% Transparent Architecture & Zero-Fetch Metadata
+ * Non-Blocking Audio Engine with Instant Visual Fallback Rendering
  */
 
 const CONSTANTS = {
     CONTRACT_ADDRESS: "0xb6dae651468e9593e4581705a09c10a76ac1e0c8",
     RPC_URL: "https://cloudflare-eth.com", 
-    IPFS_GATEWAYS: [
-        "https://cloudflare-ipfs.com/ipfs/",
-        "https://dweb.link/ipfs/",
-        "https://ipfs.io/ipfs/"
-    ]
+    IPFS_GATEWAY: "https://cloudflare-ipfs.com/ipfs/"
 };
 
 const TOKEN_MAP = {
@@ -31,7 +27,6 @@ const ARTISTS = [
     "Shallu Varun", "Jhanu", "Metapurse"
 ];
 
-// HARDCODED METADATA - Completely bypasses IPFS 429 Rate Limits
 const PANN_METADATA = {
     "layout": {
         "layers": [
@@ -68,7 +63,6 @@ let state = {
     activeMix: {},
     audioNodes: {}, 
     userWallet: null,
-    isGlobalMode: true,
     syncInterval: null
 };
 
@@ -92,12 +86,11 @@ const UI = {
     loadingOverlay: document.getElementById('loading-overlay')
 };
 
-// --- INITIALIZATION ---
 function init() {
     populateArtists();
     bindEvents();
     buildUI();
-    generateRandomMix(false); // Instantly builds the UI and background without network delays
+    generateRandomMix(false); 
 }
 
 function populateArtists() {
@@ -135,13 +128,11 @@ function bindEvents() {
 function resolveIPFSUrl(uri) {
     if (!uri) return "";
     const cid = uri.replace("ipfs://", "").split("/")[0];
-    return `${CONSTANTS.IPFS_GATEWAYS[0]}${cid}`; // Routes through Cloudflare
+    return `${CONSTANTS.IPFS_GATEWAY}${cid}`;
 }
 
-// --- UI CONSTRUCTION ---
 function buildUI() {
     UI.layerControls.innerHTML = '';
-    
     const visualLayers = state.metadata.layout.layers;
     const audioLayers = state.metadata["audio-layout"].layers;
 
@@ -197,8 +188,6 @@ function handleLocalLayerChange(tokenId, index, optionEl) {
 }
 
 function generateRandomMix(isShuffle = false) {
-    if (isShuffle) showLoading("Hot-Swapping Mix...");
-    
     const selects = document.querySelectorAll('.layer-select');
     selects.forEach(select => {
         const opts = select.options;
@@ -219,12 +208,9 @@ function generateRandomMix(isShuffle = false) {
 
     if (isShuffle && state.isPlaying) {
         hotSwapAllAudio();
-    } else {
-        hideLoading();
     }
 }
 
-// --- VISUAL RENDERING ---
 function renderVisuals() {
     UI.artworkContainer.innerHTML = '';
     
@@ -254,19 +240,17 @@ function updateTags() {
     });
 }
 
-// --- AUDIO ENGINE ---
+// --- NON-BLOCKING AUDIO ENGINE ---
 async function togglePlayback() {
     if (state.isPlaying) {
         pauseAll();
     } else {
-        await playAll();
+        await playAllNonBlocking();
     }
 }
 
-async function playAll() {
-    showLoading("Syncing Buffers...");
-    
-    let promises = [];
+async function playAllNonBlocking() {
+    // Non-blocking approach: instantly start playback without getting trapped in Promise.all locks
     Object.keys(state.activeMix).forEach(tokenId => {
         if (!state.audioNodes[tokenId]) {
             const audio = new Audio();
@@ -279,39 +263,17 @@ async function playAll() {
         
         const node = state.audioNodes[tokenId];
         if (node.src) {
-            promises.push(new Promise((resolve) => {
-                if (node.readyState >= 3) resolve();
-                else {
-                    node.addEventListener('canplay', resolve, {once:true});
-                    node.load();
-                }
-            }));
+            node.play().catch(e => console.warn("Auto-play restriction handled:", e));
         }
     });
 
-    try {
-        await Promise.all(promises);
-        const targetTime = state.audioNodes[Object.keys(state.audioNodes)[0]]?.currentTime || 0;
-        
-        Object.values(state.audioNodes).forEach(node => {
-            if(node.src) {
-                node.currentTime = targetTime;
-                node.play().catch(e => console.warn("Auto-play prevented", e));
-            }
-        });
-        
-        state.isPlaying = true;
-        document.body.classList.add('playing');
-        UI.iconPlay.classList.add('hidden');
-        UI.iconPause.classList.remove('hidden');
-        
-        startSyncWatchdog();
-        startProgressTimer();
-    } catch (e) {
-        console.error("Audio playback error:", e);
-    }
+    state.isPlaying = true;
+    document.body.classList.add('playing');
+    UI.iconPlay.classList.add('hidden');
+    UI.iconPause.classList.remove('hidden');
     
-    hideLoading();
+    startSyncWatchdog();
+    startProgressTimer();
 }
 
 function pauseAll() {
@@ -323,25 +285,15 @@ function pauseAll() {
     clearInterval(state.syncInterval);
 }
 
-async function handleSeek(e) {
+function handleSeek(e) {
     if (!state.isPlaying) return;
     const rect = UI.progressBar.getBoundingClientRect();
     const percent = (e.clientX - rect.left) / rect.width;
     const targetTime = percent * state.duration;
     
-    pauseAll();
-    showLoading("Seeking...");
-    
-    let promises = Object.values(state.audioNodes).map(node => {
-        return new Promise(resolve => {
-            if(!node.src) return resolve();
-            node.addEventListener('seeked', resolve, {once:true});
-            node.currentTime = targetTime;
-        });
+    Object.values(state.audioNodes).forEach(node => {
+        if (node.src) node.currentTime = targetTime;
     });
-    
-    await Promise.all(promises);
-    await playAll();
 }
 
 function startSyncWatchdog() {
@@ -356,17 +308,17 @@ function startSyncWatchdog() {
             const drift = masterTime - nodes[i].currentTime;
             nodes[i].playbackRate = Math.abs(drift) > 0.05 ? (drift > 0 ? 1.05 : 0.95) : 1.0;
         }
-    }, 500);
+    }, 1000);
 }
 
-async function hotSwapAllAudio() {
+function hotSwapAllAudio() {
     pauseAll();
     Object.values(state.audioNodes).forEach(node => { node.pause(); node.src = ""; });
     state.audioNodes = {};
-    await playAll();
+    playAllNonBlocking();
 }
 
-async function hotSwapAudio(tokenId) {
+function hotSwapAudio(tokenId) {
     if(!state.activeMix[tokenId].audioUrl) return;
     const oldNode = state.audioNodes[tokenId];
     const targetTime = oldNode ? oldNode.currentTime : 0;
@@ -376,16 +328,12 @@ async function hotSwapAudio(tokenId) {
     newNode.src = state.activeMix[tokenId].audioUrl;
     newNode.loop = true;
     newNode.preservesPitch = false;
-    newNode.volume = 0; 
     
-    newNode.addEventListener('canplay', () => {
-        newNode.currentTime = targetTime;
-        newNode.play();
-        newNode.volume = 1; 
-        if (oldNode) { oldNode.pause(); oldNode.src = ""; }
-        state.audioNodes[tokenId] = newNode;
-    }, {once:true});
-    newNode.load();
+    newNode.currentTime = targetTime;
+    newNode.play().catch(e => {});
+    
+    if (oldNode) { oldNode.pause(); oldNode.src = ""; }
+    state.audioNodes[tokenId] = newNode;
 }
 
 function startProgressTimer() {
@@ -410,8 +358,6 @@ async function connectWallet() {
         state.userWallet = accounts[0];
         document.getElementById('btn-connect-wallet').classList.add('hidden');
         document.getElementById('btn-logout-wallet').classList.remove('hidden');
-        document.getElementById('web3-status-bar').classList.remove('hidden');
-        document.getElementById('wallet-address-display').textContent = `${state.userWallet.substring(0,6)}...${state.userWallet.substring(state.userWallet.length - 4)}`;
     } catch (e) { console.error("Connection denied."); }
 }
 
@@ -419,10 +365,6 @@ function logoutWallet() {
     state.userWallet = null;
     document.getElementById('btn-connect-wallet').classList.remove('hidden');
     document.getElementById('btn-logout-wallet').classList.add('hidden');
-    document.getElementById('web3-status-bar').classList.add('hidden');
 }
-
-function showLoading(msg) { UI.loadingOverlay.classList.remove('hidden'); document.getElementById('loading-text').textContent = msg; }
-function hideLoading() { UI.loadingOverlay.classList.add('hidden'); }
 
 init();
