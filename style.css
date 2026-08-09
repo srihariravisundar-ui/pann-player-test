@@ -55,7 +55,7 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
 /* UI Overlay */
 .ui-container {
     position: absolute; inset: 0; z-index: 100;
-    pointer-events: none; display: flex; flex-direction: column; padding: 1.5rem;
+    pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 20px;
 }
 
 .ui-container > * { pointer-events: auto; }
@@ -63,7 +63,7 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
 /* App Header & Web3 Wallet */
 .app-header {
     display: flex; justify-content: space-between; align-items: center;
-    width: 100%; z-index: 110;
+    width: 100%; z-index: 110; pointer-events: auto;
 }
 
 .brand-title {
@@ -72,16 +72,16 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
     text-shadow: 0 2px 10px rgba(0,0,0,0.8);
 }
 
-.wallet-nav-container { display: flex; align-items: center; gap: 1rem; }
+.wallet-nav-container { display: flex; align-items: center; gap: 0.75rem; }
 
-.wallet-btn {
+.wallet-btn, .owner-nav-btn {
     background: rgba(255, 255, 255, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: #fff; padding: 0.5rem 1rem; border-radius: 20px;
     font-size: 0.8rem; font-weight: 500; cursor: pointer;
     backdrop-filter: blur(10px); transition: all 0.2s ease;
 }
-.wallet-btn:hover { background: rgba(255, 255, 255, 0.25); }
+.wallet-btn:hover, .owner-nav-btn:hover { background: rgba(255, 255, 255, 0.25); }
 
 .wallet-info {
     display: flex; align-items: center; gap: 0.75rem;
@@ -99,11 +99,33 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
 
 .hidden { display: none !important; }
 
-/* Page & Tab Management */
+/* Owner Blueprints Modal */
+.blueprint-modal {
+    position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.85);
+    display: flex; justify-content: center; align-items: center;
+    backdrop-filter: blur(10px); opacity: 1; transition: opacity 0.3s ease;
+}
+.blueprint-modal.hidden { opacity: 0; pointer-events: none; }
+.blueprint-modal-content {
+    background: #111; border: 1px solid rgba(255,255,255,0.2);
+    width: 90%; max-width: 500px; padding: 2rem; border-radius: 16px;
+    display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+}
+.blueprint-modal-header { display: flex; justify-content: space-between; align-items: center; }
+.close-modal-btn { background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; }
+.blueprint-subtitle { font-size: 0.8rem; color: rgba(255,255,255,0.6); margin-bottom: 0.5rem; }
+.blueprint-list { display: flex; flex-direction: column; gap: 0.75rem; max-height: 40vh; overflow-y: auto; }
+.blueprint-card {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+    padding: 0.85rem 1rem; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;
+}
+.blueprint-card-title { font-size: 0.85rem; font-weight: 500; text-align: left; }
+.blueprint-card-action { background: #fff; color: #000; border: none; padding: 0.35rem 0.8rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; cursor: pointer; }
+
+/* Page */
 .page {
     position: absolute; inset: 0; display: flex; flex-direction: column;
     opacity: 0; pointer-events: none; transition: opacity 0.8s ease;
-    padding-top: 5rem;
 }
 .page.active { opacity: 1; pointer-events: auto; }
 
@@ -130,44 +152,9 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
 .gateway-tags { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .gateway-tags .tag { font-size: 0.7rem; color: #aaa; text-transform: uppercase; }
 
-/* Player Page & Tabs */
-#player-page { justify-content: flex-start; }
-
-.tab-switcher {
-    display: flex; gap: 0.5rem; background: rgba(255,255,255,0.08);
-    padding: 4px; border-radius: 25px; margin: 1rem auto;
-    backdrop-filter: blur(10px); width: fit-content; z-index: 105;
-}
-
-.tab-btn {
-    background: transparent; border: none; color: rgba(255,255,255,0.6);
-    padding: 0.4rem 1.2rem; border-radius: 20px; font-size: 0.8rem;
-    font-weight: 500; cursor: pointer; transition: all 0.2s;
-}
-.tab-btn.active { background: #fff; color: #000; }
-
-.tab-content { display: none; width: 100%; flex: 1; flex-direction: column; position: relative; }
-.tab-content.active { display: flex; }
-
-/* Owner Blueprints Panel */
-.blueprint-panel {
-    width: 90%; max-width: 600px; margin: 2rem auto; text-align: center;
-    padding: 1.5rem; background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;
-    backdrop-filter: blur(15px);
-}
-.blueprint-panel h3 { font-size: 1.4rem; margin-bottom: 0.5rem; }
-.blueprint-subtitle { font-size: 0.8rem; color: rgba(255,255,255,0.6); margin-bottom: 1.5rem; }
-.blueprint-list { display: flex; flex-direction: column; gap: 0.75rem; max-height: 40vh; overflow-y: auto; }
-.blueprint-empty { font-size: 0.85rem; color: rgba(255,255,255,0.5); padding: 2rem 0; }
-.blueprint-card {
-    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
-    padding: 0.85rem 1rem; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;
-}
-.blueprint-card-title { font-size: 0.85rem; font-weight: 500; text-align: left; }
-.blueprint-card-action { background: #fff; color: #000; border: none; padding: 0.35rem 0.8rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; cursor: pointer; }
-
-.player-top-left { padding: 10px 20px; pointer-events: none; }
+/* Player Page */
+#player-page { justify-content: space-between; }
+.player-top-left { padding: max(20px, env(safe-area-inset-top)) 20px 20px; pointer-events: none; }
 .tags-stack { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 
 .playing-tag {
@@ -177,17 +164,10 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
 }
 body.playing .playing-tag { opacity: 1; }
 
-.player-bottom-dock {
-    position: absolute; bottom: 0; left: 0; right: 0;
+.player-bottom {
     padding: 20px 20px max(20px, env(safe-area-inset-bottom));
     pointer-events: auto; display: flex; flex-direction: column; gap: 2rem;
-    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
-    z-index: 105;
-}
-
-.player-bottom {
-    padding: 10px 20px;
-    pointer-events: auto; display: flex; flex-direction: column; gap: 2rem;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
 }
 
 .layer-dropdowns {
