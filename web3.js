@@ -12,7 +12,7 @@ const WEB3_CONFIG = {
         "winds": 4286,
         "ambience": 4287,
         "rhythm": 4288,
-        "traditional": 4289, 
+        "traditional": 4289, // Exactly matched to your JSON ID
         "voices": 4290,
         "guitars": 4291, 
         "keys": 4292,
@@ -25,13 +25,12 @@ const WEB3_CONFIG = {
         "function useControlToken(uint256 tokenId, uint256 variantId)",
         
         // READ function (Publicly accessible)
-        // TODO: If Etherscan shows a different name than 'getControlToken', change it here!
         "function getControlToken(uint256 tokenId) view returns (uint256)" 
     ]
 };
 
 const web3State = {
-    provider: null, // User's MetaMask
+    provider: null, 
     signer: null,
     address: null,
     ownedLayers: [],
@@ -39,7 +38,7 @@ const web3State = {
 };
 
 async function initWeb3() {
-    // 1. Instantly fetch and sync the live Master State for all visitors
+    // 1. Instantly fetch and sync the live Master State for all visitors on load
     syncLiveState();
 
     // 2. Setup Wallet Buttons for Owners
@@ -69,7 +68,6 @@ async function initWeb3() {
 async function syncLiveState() {
     try {
         console.log("Fetching live Master state from Ethereum...");
-        // Connect to the free Cloudflare Ethereum node
         const publicProvider = new ethers.providers.JsonRpcProvider(WEB3_CONFIG.publicRpcUrl);
         const readContract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, publicProvider);
 
@@ -77,23 +75,22 @@ async function syncLiveState() {
 
         for (const select of originalSelects) {
             const layerId = select.dataset.layerId || select.id.replace('select-', '');
+            // Failsafe normalization (e.g., "Traditional" -> "traditional")
             const normalizedLayerId = layerId.toLowerCase().replace(/\s+/g, '-');
             const tokenId = WEB3_CONFIG.layerTokens[normalizedLayerId] || WEB3_CONFIG.layerTokens[layerId];
 
             if (!tokenId || tokenId === 0) continue;
 
             try {
-                // Ask the blockchain for the current variant
                 const currentVariant = await readContract.getControlToken(tokenId);
                 
-                // If the blockchain state is different from the UI, update it
                 if (select.selectedIndex !== Number(currentVariant)) {
                     select.selectedIndex = Number(currentVariant);
-                    // Dispatch change event to trigger your original script.js audio sync
+                    // This tells your script.js to physically change the audio/image!
                     select.dispatchEvent(new Event('change'));
                 }
             } catch (err) {
-                console.warn(`Could not fetch state for ${layerId} (Token ${tokenId}). It may be using a different read function.`);
+                console.warn(`Could not fetch state for ${layerId} (Token ${tokenId}).`);
             }
         }
         console.log("Pann is fully synced with the blockchain!");
@@ -112,12 +109,18 @@ async function connectWallet() {
     try {
         const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
         
+        // Force Ethereum Mainnet
         const network = await provider.getNetwork();
         if (network.chainId !== WEB3_CONFIG.chainId) {
-            await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: ethers.utils.hexValue(WEB3_CONFIG.chainId) }],
-            });
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: ethers.utils.hexValue(WEB3_CONFIG.chainId) }],
+                });
+            } catch (switchError) {
+                alert("Please switch your MetaMask network to Ethereum Mainnet.");
+                return;
+            }
         }
 
         await provider.send("eth_requestAccounts", []);
@@ -148,6 +151,7 @@ async function verifyOwnership() {
     for (const [layerId, tokenId] of Object.entries(WEB3_CONFIG.layerTokens)) {
         if (tokenId === 0) continue; 
         try {
+            // ERC-1155 standard check
             const balance = await contract.balanceOf(web3State.address, tokenId);
             if (balance.gt(0)) {
                 web3State.ownedLayers.push(layerId);
@@ -258,6 +262,7 @@ async function publishToBlockchain() {
         layerIdsToUpdate.forEach(layerId => {
             const change = web3State.pendingChanges[layerId];
             change.originalElement.value = change.newValue;
+            // Hot-swap the live audio
             change.originalElement.dispatchEvent(new Event('change'));
         });
         
