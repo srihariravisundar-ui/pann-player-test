@@ -6,20 +6,17 @@
     <title>Pann</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js" type="text/javascript"></script>
 </head>
 <body>
-    <!-- Background (Full screen strings) -->
     <div id="player-bg" class="background-container"></div>
 
-    <!-- Artwork (Grouped floating container for safe animation) -->
     <div class="artwork-wrapper">
         <div id="layer-container" class="artwork-container"></div>
     </div>
 
-    <!-- UI Overlay -->
     <div id="ui-layer" class="ui-container">
         
-        <!-- Gateway Page -->
         <div id="gateway-page" class="page active">
             <div class="gateway-content">
                 <h1>Pann</h1>
@@ -30,22 +27,25 @@
                     </p>
                     <button id="learnMoreBtn" class="text-link">Learn more</button>
                 </div>
-                <!-- This button unlocks Safari Audio instantly -->
+                
                 <button id="enterBtn" class="primary-btn">Enter the Canvas</button>
+                
+                <div style="margin-top: 1rem;">
+                    <button id="connectWalletBtn" class="text-link" style="font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase;">✦ Connect Wallet</button>
+                    <p id="walletAddressDisplay" style="font-size: 0.65rem; color: #aaa; margin-top: 5px;"></p>
+                </div>
+
                 <div class="artists-section">
                     <div id="artists-container" class="gateway-tags"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Player Page -->
         <div id="player-page" class="page hidden">
-            <!-- Active tags at top left -->
             <div class="player-top-left">
                 <div id="active-tags" class="tags-stack"></div>
             </div>
 
-            <!-- Controls locked to safe bottom -->
             <div class="player-bottom">
                 <div id="controls" class="layer-dropdowns"></div>
 
@@ -74,11 +74,12 @@
         </div>
     </div>
 
-    <!-- Loading Overlay -->
     <div id="loading-overlay" class="hidden">
         <div class="spinner"></div>
         <span id="loading-text">Connecting Layers...</span>
     </div>
+    
+    <div id="tx-toast" class="tx-toast hidden">Transaction Status</div>
 
     <script src="script.js"></script>
 </body>
