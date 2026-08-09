@@ -147,12 +147,7 @@ body.playing .layer-dropdowns { opacity: 0; pointer-events: none; }
    WEB3 WALLET AND OWNER OVERLAY INTEGRATION
    ========================================================= */
 
-.player-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-}
+
 
 .wallet-btn {
     background: rgba(255, 255, 255, 0.1);
