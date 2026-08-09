@@ -121,3 +121,40 @@ h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
 .buttons-row { display: flex; justify-content: center; gap: 3rem; align-items: center; padding: 0 1rem; }
 .icon-btn { background: transparent; border: none; cursor: pointer; padding: 8px; transition: transform 0.2s; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.8)); }
 .icon-btn:active { transform: scale(0.9); }
+
+/* --- Web3 Extension Styles --- */
+.wallet-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff; font-family: 'Inter', sans-serif;
+    padding: 6px 14px; border-radius: 20px; font-size: 0.8rem;
+    cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(4px);
+    pointer-events: auto; margin-left: 10px;
+}
+.wallet-btn:hover { background: rgba(255, 255, 255, 0.2); }
+.wallet-btn.connected { background: rgba(46, 204, 113, 0.2); border-color: rgba(46, 204, 113, 0.5); }
+
+.owner-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+}
+.owner-overlay.active { opacity: 1; pointer-events: auto; }
+.owner-modal-content {
+    background: #111; border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px;
+    position: relative; display: flex; flex-direction: column; gap: 1.5rem;
+}
+.close-btn { position: absolute; top: 1rem; right: 1.5rem; background: transparent; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; }
+.owner-description { font-size: 0.9rem; color: rgba(255, 255, 255, 0.6); line-height: 1.4; }
+.owner-controls-container { display: flex; flex-direction: column; gap: 1rem; background: #000; padding: 1rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05); }
+.owner-control-row { display: flex; justify-content: space-between; align-items: center; }
+.owner-control-label { font-size: 0.9rem; color: rgba(255, 255, 255, 0.5); }
+.owner-control-label.owned-layer-text { color: #fff; font-weight: 500; }
+.owner-control-select { background: #222; color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 6px; font-family: inherit; }
+.owner-control-select:disabled { opacity: 0.5; cursor: not-allowed; }
+.owner-actions { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+.publish-btn { background: #fff; color: #000; border: none; padding: 12px 24px; border-radius: 24px; font-family: 'Inter', sans-serif; font-weight: 500; cursor: pointer; width: 100%; }
+.publish-btn:disabled { background: #333; color: #777; cursor: not-allowed; }
+.tx-status { font-size: 0.85rem; text-align: center; height: 1rem; color: #fff; }
