@@ -4,10 +4,17 @@
 
     const JSON_URL = "QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq";
     const IPFS_GATEWAYS = [
-        'https://ipfs.io/ipfs/', 
         'https://cloudflare-ipfs.com/ipfs/',
+        'https://ipfs.io/ipfs/', 
         'https://dweb.link/ipfs/',
         'https://gateway.pinata.cloud/ipfs/'
+    ];
+
+    // Web3 Pann Contract Details
+    const CONTRACT_ADDRESS = "0xb6dae651468e9593e4581705a09c10a76ac1e0c8";
+    const CONTRACT_ABI = [
+        "function ownerOf(uint256 tokenId) view returns (address)",
+        "function use(uint256 tokenId, uint256 layerIndex, uint256 state) public"
     ];
 
     const ARTISTS_LIST = [
@@ -30,7 +37,13 @@
         isPlaying: false,
         duration: 0,
         syncInterval: null,
-        isSeeking: false
+        isSeeking: false,
+        
+        // Web3 State
+        web3Provider: null,
+        web3Signer: null,
+        userAddress: null,
+        ownedTokens: []
     };
 
     let animationFrameId = null;
@@ -56,8 +69,113 @@
         playerBg: document.getElementById("player-bg"),
         layerContainer: document.getElementById("layer-container"),
         learnMoreBtn: document.getElementById("learnMoreBtn"),
-        moreText: document.getElementById("moreText")
+        moreText: document.getElementById("moreText"),
+        
+        // Web3 UI
+        connectWalletBtn: document.getElementById("connectWalletBtn"),
+        walletAddressDisplay: document.getElementById("walletAddressDisplay"),
+        txToast: document.getElementById("tx-toast")
     };
+
+    // --- WEB3 INTEGRATION ---
+    function showToast(msg, duration = 4000) {
+        UI.txToast.textContent = msg;
+        UI.txToast.classList.remove('hidden');
+        setTimeout(() => UI.txToast.classList.add('hidden'), duration);
+    }
+
+    async function initWeb3() {
+        if (typeof window.ethereum === 'undefined') {
+            alert('Please install MetaMask to interact with layer ownership.');
+            return;
+        }
+
+        try {
+            state.web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+            await state.web3Provider.send("eth_requestAccounts", []);
+            state.web3Signer = state.web3Provider.getSigner();
+            state.userAddress = await state.web3Signer.getAddress();
+            
+            UI.connectWalletBtn.textContent = '✦ Wallet Connected';
+            UI.walletAddressDisplay.textContent = `${state.userAddress.substring(0, 6)}...${state.userAddress.substring(state.userAddress.length - 4)}`;
+            
+            await checkLayerOwnership();
+            injectOwnershipButtons();
+        } catch (error) {
+            console.error("Wallet connection failed:", error);
+            showToast("Connection failed.");
+        }
+    }
+
+    async function checkLayerOwnership() {
+        if (!state.userAddress || !state.metadata) return;
+        showToast("Verifying on-chain ownership...", 2000);
+        
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, state.web3Provider);
+        state.ownedTokens = [];
+
+        const visuals = state.metadata.layout?.layers || [];
+        for (let i = 0; i < visuals.length; i++) {
+            const tokenId = visuals[i].states?.["token-id"];
+            if (tokenId) {
+                try {
+                    const owner = await contract.ownerOf(tokenId);
+                    if (owner.toLowerCase() === state.userAddress.toLowerCase()) {
+                        state.ownedTokens.push(tokenId);
+                    }
+                } catch (e) {
+                    console.warn(`Could not verify token ${tokenId}`);
+                }
+            }
+        }
+    }
+
+    function injectOwnershipButtons() {
+        if (state.ownedTokens.length === 0) return;
+        
+        UI.controls.querySelectorAll('.dropdown-group').forEach(group => {
+            const select = group.querySelector('select');
+            const tokenId = parseInt(select.dataset.tokenId);
+            
+            // Only inject if the user owns this layer and we haven't injected it yet
+            if (state.ownedTokens.includes(tokenId) && !group.querySelector('.publish-btn')) {
+                const btn = document.createElement("button");
+                btn.className = "publish-btn";
+                btn.textContent = "✦ Publish Mix";
+                
+                btn.addEventListener("click", async () => {
+                    const selectedIndex = select.selectedIndex;
+                    await submitLayerTransaction(tokenId, selectedIndex);
+                });
+                
+                group.appendChild(btn);
+            }
+        });
+        showToast("Layer Owner controls unlocked.");
+    }
+
+    async function submitLayerTransaction(tokenId, variantState) {
+        if (!state.web3Signer) return;
+        try {
+            const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, state.web3Signer);
+            showToast("Please confirm transaction in MetaMask...");
+            
+            // "0" is the standard lever-id for base variant changes in Async Art
+            const tx = await contract.use(tokenId, 0, variantState);
+            showToast(`Transaction submitted. Waiting for confirmation...`);
+            
+            await tx.wait();
+            showToast(`✦ Success! Layer state updated on-chain.`, 6000);
+        } catch (error) {
+            console.error(error);
+            showToast("Transaction cancelled or failed.", 4000);
+        }
+    }
+
+    if (UI.connectWalletBtn) {
+        UI.connectWalletBtn.addEventListener('click', initWeb3);
+    }
+    // ------------------------
 
     function populateArtists() {
         if (!UI.artistsContainer) return;
@@ -211,7 +329,7 @@
     }
 
     function enforceSync() {
-        if (state.isSeeking) return; // Prevent sync from firing during a seek operation
+        if (state.isSeeking) return;
 
         const nodes = Object.values(state.audioPool).filter(n => !n.paused && n.src);
         if (nodes.length <= 1) return;
@@ -285,7 +403,6 @@
         cancelAnimationFrame(animationFrameId);
     }
 
-    // --- THE ABSOLUTE BUFFER LOCK FIX ---
     async function seekTo(targetTime) {
         if (!state.duration || isNaN(targetTime)) return;
 
@@ -298,7 +415,6 @@
             return;
         }
 
-        // 1. Instantly update UI and show loading spinner
         const percent = (targetTime / state.duration) * 100;
         if (UI.progressFill) UI.progressFill.style.width = `${percent}%`;
         if (UI.currentTimeEl) UI.currentTimeEl.textContent = formatTime(targetTime);
@@ -306,14 +422,12 @@
         UI.loadingOverlay.classList.remove('hidden');
         if (UI.loadingText) UI.loadingText.textContent = "Syncing Layers...";
 
-        // 2. Pause and mute all tracks so they don't start playing staggeringly
         nodes.forEach(node => {
             node.pause();
             node.volume = 0;
-            node.playbackRate = 1.0; // Reset any previous pitch bending
+            node.playbackRate = 1.0;
         });
 
-        // 3. Command the seek and wait for EVERY node to buffer independently
         const seekPromises = nodes.map(node => {
             return new Promise(resolve => {
                 const onReady = () => {
@@ -326,21 +440,17 @@
                 node.addEventListener('canplay', onReady);
                 
                 node.currentTime = targetTime;
-
-                // Failsafe: if a bad network hangs the event, resolve after 4s to prevent permanent lock
                 setTimeout(resolve, 4000); 
             });
         });
 
         await Promise.all(seekPromises);
 
-        // 4. Hard-snap them all to the exact same millisecond one last time to fix micro-drifts during the wait
         nodes.forEach(node => {
             node.currentTime = targetTime;
-            node.volume = 1; // Restore volume
+            node.volume = 1;
         });
 
-        // 5. Safely resume
         state.isSeeking = false;
         UI.loadingOverlay.classList.add('hidden');
 
@@ -396,7 +506,6 @@
             const slot = state.visualSlots[layerId]; 
             
             if (!slot) return;
-            
             slot.dataset.targetCid = cid;
 
             if (!cid) {
@@ -416,14 +525,12 @@
                 if (slot.dataset.targetCid !== cid) return;
 
                 const oldImages = Array.from(slot.querySelectorAll('img'));
-                
                 oldImages.forEach(oldImg => {
                     oldImg.classList.remove('layer-visible');
                     setTimeout(() => { if (oldImg.parentNode) oldImg.remove(); }, 1200);
                 });
 
                 slot.appendChild(img);
-                
                 requestAnimationFrame(() => {
                     img.classList.add('layer-visible');
                 });
@@ -437,7 +544,6 @@
         state.selections.visuals[layerId] = visualCid;
         state.selections.audio[layerId] = audioCid;
         renderTags(); 
-        
         updateVisuals(layerId); 
         await loadAudioStreams(); 
     }
@@ -486,6 +592,8 @@
                     const select = document.createElement("select");
                     select.className = "layer-select";
                     select.dataset.layerId = layerId; 
+                    // Track Token ID for Web3 Ownership mapping
+                    select.dataset.tokenId = layer.states?.["token-id"] || index + 1;
                     
                     layer.states.options.forEach((opt, idx) => {
                         const option = document.createElement("option");
@@ -516,6 +624,9 @@
             renderTags();
             updateVisuals(); 
 
+            // If the user already connected their wallet previously, inject buttons
+            if (state.ownedTokens.length > 0) injectOwnershipButtons();
+
         } catch (e) {
             console.error("Failed to load metadata", e);
         }
@@ -530,7 +641,6 @@
 
     if (UI.enterBtn && UI.gatewayPage && UI.playerPage) {
         UI.enterBtn.addEventListener('click', async () => {
-            
             Object.values(state.audioPool).forEach(node => {
                 node.volume = 0;
                 const p = node.play();
