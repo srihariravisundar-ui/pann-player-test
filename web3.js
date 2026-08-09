@@ -1,4 +1,4 @@
-// web3.js - Dynamic Non-Disruptive Web3 Bridge for Pann
+// web3.js - Isolated Web3 Integration Engine
 
 const WEB3_CONFIG = {
     contractAddress: "0x96be3dfdf788b7078ef7514e076ccfd33acfd7cd",
@@ -28,42 +28,26 @@ const web3State = {
     pendingChanges: {}
 };
 
-function injectWeb3Elements() {
-    const playerTop = document.querySelector('.player-top');
-    if (playerTop && !document.getElementById('connect-wallet-btn')) {
-        const walletBtn = document.createElement('button');
-        walletBtn.id = 'connect-wallet-btn';
-        walletBtn.className = 'wallet-btn';
-        walletBtn.textContent = 'Connect Wallet';
-        walletBtn.addEventListener('click', async () => {
+function initWeb3() {
+    const connectBtn = document.getElementById('connect-wallet-btn');
+    const closeBtn = document.getElementById('close-owner-tab');
+    const publishBtn = document.getElementById('publish-btn');
+    
+    if (connectBtn) {
+        connectBtn.addEventListener('click', async () => {
             if (web3State.address) openOwnerModal();
             else await connectWallet();
         });
-        playerTop.appendChild(walletBtn);
     }
 
-    if (!document.getElementById('owner-tab-overlay')) {
-        const overlay = document.createElement('div');
-        overlay.id = 'owner-tab-overlay';
-        overlay.className = 'owner-overlay hidden';
-        overlay.innerHTML = `
-            <div class="owner-modal-content">
-                <button id="close-owner-tab" class="close-btn">×</button>
-                <h2 class="serif" style="color:#fff;">Master Stem Controls</h2>
-                <p class="owner-description">Modify your owned layers below. Changes will be published to the Ethereum blockchain.</p>
-                <div id="owner-layer-controls" class="owner-controls-container"></div>
-                <div class="owner-actions">
-                    <button id="publish-btn" class="publish-btn" disabled>Publish to Blockchain</button>
-                    <p id="tx-status" class="tx-status"></p>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-
-        document.getElementById('close-owner-tab').addEventListener('click', () => {
-            overlay.classList.remove('active');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            document.getElementById('owner-tab-overlay').classList.remove('active');
         });
-        document.getElementById('publish-btn').addEventListener('click', publishToBlockchain);
+    }
+
+    if (publishBtn) {
+        publishBtn.addEventListener('click', publishToBlockchain);
     }
 }
 
@@ -109,9 +93,19 @@ async function verifyOwnership() {
         const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, web3State.provider);
         for (const [layerId, tokenId] of Object.entries(WEB3_CONFIG.layerTokens)) {
             if (tokenId === 0) continue;
-            const balance = await contract.balanceOf(web3State.address, tokenId);
-            if (balance.gt(0)) {
-                web3State.ownedLayers.push(layerId);
+            try {
+                const balance = await contract.balanceOf(web3State.address, tokenId);
+                if (balance.gt(0)) {
+                    web3State.ownedLayers.push(layerId);
+                }
+            } catch (e) {
+                // Fallback check if it acts as ERC-721 ownerOf
+                try {
+                    const owner = await contract.ownerOf(tokenId);
+                    if (owner.toLowerCase() === web3State.address.toLowerCase()) {
+                        web3State.ownedLayers.push(layerId);
+                    }
+                } catch (err) {}
             }
         }
     } catch (error) {
@@ -120,7 +114,6 @@ async function verifyOwnership() {
 }
 
 function openOwnerModal() {
-    injectWeb3Elements();
     const overlay = document.getElementById('owner-tab-overlay');
     const container = document.getElementById('owner-layer-controls');
     const publishBtn = document.getElementById('publish-btn');
@@ -241,4 +234,4 @@ async function publishToBlockchain() {
     }
 }
 
-setInterval(injectWeb3Elements, 1000);
+document.addEventListener('DOMContentLoaded', initWeb3);
