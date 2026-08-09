@@ -8,28 +8,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,600&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Background (Full screen strings) -->
     <div id="player-bg" class="background-container"></div>
 
+    <!-- Artwork (Grouped floating container for safe animation) -->
     <div class="artwork-wrapper">
         <div id="layer-container" class="artwork-container"></div>
     </div>
 
+    <!-- UI Overlay -->
     <div id="ui-layer" class="ui-container">
         
-        <header class="app-header">
-            <div class="brand-title">Pann</div>
-            <div class="wallet-nav-container">
-                <button id="ownerBlueprintsBtn" class="owner-nav-btn hidden" title="Owner Layer Blueprints">Owner Blueprints</button>
-                <button id="connectWalletBtn" class="wallet-btn">Connect Wallet</button>
-                <div id="walletInfo" class="wallet-info hidden">
-                    <span id="walletAddressDisplay">0x00...0000</span>
-                    <button id="logoutWalletBtn" class="logout-btn" title="Disconnect Wallet">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 15l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
-                    </button>
-                </div>
-            </div>
-        </header>
-
+        <!-- Gateway Page -->
         <div id="gateway-page" class="page active">
             <div class="gateway-content">
                 <h1>Pann</h1>
@@ -40,6 +30,7 @@
                     </p>
                     <button id="learnMoreBtn" class="text-link">Learn more</button>
                 </div>
+                <!-- This button unlocks Safari Audio instantly -->
                 <button id="enterBtn" class="primary-btn">Enter the Canvas</button>
                 <div class="artists-section">
                     <div id="artists-container" class="gateway-tags"></div>
@@ -47,11 +38,14 @@
             </div>
         </div>
 
+        <!-- Player Page -->
         <div id="player-page" class="page hidden">
+            <!-- Active tags at top left -->
             <div class="player-top-left">
                 <div id="active-tags" class="tags-stack"></div>
             </div>
 
+            <!-- Controls locked to safe bottom -->
             <div class="player-bottom">
                 <div id="controls" class="layer-dropdowns"></div>
 
@@ -80,26 +74,7 @@
         </div>
     </div>
 
-    <div id="blueprintModal" class="blueprint-modal hidden">
-        <div class="blueprint-modal-content">
-            <div class="blueprint-modal-header">
-                <h3>Owner Layer Blueprints</h3>
-                <button id="closeBlueprintModal" class="close-modal-btn">&times;</button>
-            </div>
-            <p class="blueprint-subtitle">Verified on-chain holders can override and publish master stem configurations.</p>
-            <div id="blueprint-list" class="blueprint-list">
-                <div class="blueprint-card">
-                    <div class="blueprint-card-title">Pann Master Stem #01 (Kurinji Landscape)</div>
-                    <button class="blueprint-card-action" onclick="alert('Owner Layer Override synchronized on-chain successfully!')">Sync Layer</button>
-                </div>
-                <div class="blueprint-card">
-                    <div class="blueprint-card-title">Pann Ambient Stem #03 (Mullai Landscape)</div>
-                    <button class="blueprint-card-action" onclick="alert('Owner Layer Override synchronized on-chain successfully!')">Sync Layer</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
+    <!-- Loading Overlay -->
     <div id="loading-overlay" class="hidden">
         <div class="spinner"></div>
         <span id="loading-text">Connecting Layers...</span>
