@@ -1,4 +1,4 @@
-/* --- Global Resets & Variables --- */
+/* --- Global Resets & Viewport Lock --- */
 :root {
     --bg-color: #000000;
     --text-primary: #ffffff;
@@ -15,7 +15,7 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-/* STRICT VIEWPORT LOCK: Prevents Android/iOS bounce and layout glitches */
+/* STRICT MOBILE VIEWPORT LOCK: Prevents Android/iOS bounce, collapse, and layout shifts */
 html, body {
     font-family: 'Inter', sans-serif;
     background: var(--bg-color);
@@ -58,7 +58,7 @@ h1, h2, h3, .serif-text {
     align-items: center;
     text-align: center;
     padding: 2rem;
-    overflow-y: auto; /* Allow internal scrolling if content expands */
+    overflow-y: auto; 
 }
 
 .gateway-bg {
@@ -69,12 +69,13 @@ h1, h2, h3, .serif-text {
     background-size: cover;
     background-position: center;
     pointer-events: none;
+    transition: background-image 1s ease;
 }
 
 .gateway-overlay {
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.95) 100%);
+    background: radial-gradient(circle at center, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.95) 100%);
     z-index: 2;
     pointer-events: none;
 }
@@ -114,15 +115,16 @@ h1, h2, h3, .serif-text {
 .web3-btn:hover { border-color: var(--gold); color: var(--gold); }
 
 .gateway-content h1 {
-    font-size: 4rem;
+    font-size: 4.5rem;
     letter-spacing: 6px;
-    text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    text-shadow: 0 4px 12px rgba(0,0,0,0.8);
 }
 
 .description-container p {
     font-size: 0.85rem;
     line-height: 1.8;
     color: var(--text-secondary);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
 }
 
 .text-btn {
@@ -168,7 +170,7 @@ h1, h2, h3, .serif-text {
     color: var(--text-secondary);
 }
 
-/* --- Main Player Architecture --- */
+/* --- Main Player Architecture (100% Transparent, Fixed-Anchor) --- */
 .player-bg {
     position: absolute;
     inset: 0;
@@ -176,8 +178,10 @@ h1, h2, h3, .serif-text {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    background-size: cover;
+    background-position: center;
     opacity: 0.7;
-    transition: opacity 1s;
+    transition: background-image 1s ease;
 }
 
 .artwork-section {
@@ -187,32 +191,32 @@ h1, h2, h3, .serif-text {
     display: flex;
     align-items: center;
     justify-content: center;
-    pointer-events: none; /* Let clicks pass to controls if overlapping */
+    pointer-events: none; 
 }
 
 .artwork-container {
     position: relative;
-    width: 100%;
-    height: 100%;
-    max-width: 100vw;
-    max-height: 100vh;
-    animation: slowBreathe 20s ease-in-out infinite alternate;
+    width: 100vw;
+    height: 100vh;
+    animation: slowBreathe 25s ease-in-out infinite alternate;
 }
 
 .layer-img {
     position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    inset: 0;
+    width: 100%; 
+    height: 100%;
     object-fit: cover;
+    opacity: 1;
     transition: opacity 1s ease;
 }
 
 @keyframes slowBreathe {
     0% { transform: scale(1); }
-    100% { transform: scale(1.03); }
+    100% { transform: scale(1.05); }
 }
 
-/* --- Transparent HUD & Safe Areas --- */
+/* --- HUD Container --- */
 .hud-container {
     position: absolute;
     inset: 0;
@@ -220,31 +224,27 @@ h1, h2, h3, .serif-text {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: var(--safe-top) 1.5rem var(--safe-bottom) 1.5rem;
-    pointer-events: none; /* Container passes clicks */
+    pointer-events: none; /* Passes clicks to background, re-enabled on children */
 }
 
 /* Top Left Tags */
 .tags-zone {
-    flex: 1;
-    display: flex;
-    align-items: flex-start;
-    justify-content: flex-start;
-    padding-top: 1rem;
+    padding: calc(var(--safe-top) + 1rem) 1.5rem 1rem 1.5rem;
+    pointer-events: auto;
 }
 
 .active-tags-container {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    pointer-events: auto; /* Tags are touchable */
+    gap: 8px;
 }
 
 .tag-item {
     font-family: 'Playfair Display', serif;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     color: var(--text-primary);
-    text-shadow: 0 2px 8px rgba(0,0,0,0.8), 0 0 4px rgba(0,0,0,0.6);
+    /* Heavy shadow replacing dark backgrounds for readability */
+    text-shadow: 0 2px 10px rgba(0,0,0,0.9), 0 0 5px rgba(0,0,0,0.8);
     background: transparent !important;
     border: none !important;
     padding: 0;
@@ -254,14 +254,14 @@ h1, h2, h3, .serif-text {
 
 /* Bottom Controls */
 .control-zone {
-    width: 100%;
-    max-width: 600px;
-    margin: 0 auto;
+    padding: 1rem 1.5rem calc(var(--safe-bottom) + 1rem) 1.5rem;
     pointer-events: auto;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    padding-bottom: 1rem;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
 }
 
 /* Web3 Badges */
@@ -276,15 +276,15 @@ h1, h2, h3, .serif-text {
 .badge {
     padding: 4px 8px;
     border-radius: 4px;
-    background: rgba(255,255,255,0.1);
+    background: rgba(0,0,0,0.4);
     border: 1px solid rgba(255,255,255,0.2);
 }
 .badge.global { border-color: var(--gold); color: var(--gold); }
 
-/* Dropdowns */
+/* Layer Dropdowns */
 .layer-controls-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 1rem;
     max-height: 40vh;
     overflow-y: auto;
@@ -341,13 +341,13 @@ h1, h2, h3, .serif-text {
     cursor: pointer;
     margin-top: 4px;
 }
-.btn-publish:hover { background: rgba(212, 175, 55, 0.1); }
+.btn-publish:hover { background: rgba(212, 175, 55, 0.2); }
 
-/* Playback state hides dropdowns cleanly */
+/* Hide dropdowns when playing */
 body.playing .layer-controls-grid {
     opacity: 0;
     pointer-events: none;
-    position: absolute; /* Take out of flow so it doesn't take space when hidden */
+    position: absolute; 
 }
 
 /* Transport Console */
@@ -373,7 +373,7 @@ body.playing .layer-controls-grid {
 .progress-bar {
     flex: 1;
     height: 4px;
-    background: rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.3);
     border-radius: 2px;
     cursor: pointer;
     position: relative;
@@ -390,7 +390,7 @@ body.playing .layer-controls-grid {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 1rem;
+    padding: 0 2rem;
 }
 
 .icon-btn {
@@ -401,7 +401,7 @@ body.playing .layer-controls-grid {
     display: flex;
     align-items: center;
     justify-content: center;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
     transition: transform 0.2s;
 }
 .icon-btn:active { transform: scale(0.9); }
@@ -410,7 +410,7 @@ body.playing .layer-controls-grid {
 #loading-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.85);
     z-index: 100;
     display: flex;
     flex-direction: column;
@@ -429,7 +429,7 @@ body.playing .layer-controls-grid {
 
 .toast {
     position: fixed;
-    bottom: var(--safe-bottom);
+    bottom: calc(var(--safe-bottom) + 80px);
     left: 50%;
     transform: translateX(-50%);
     background: var(--text-primary);
@@ -439,5 +439,5 @@ body.playing .layer-controls-grid {
     font-size: 0.8rem;
     font-weight: 500;
     z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
