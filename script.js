@@ -30,11 +30,7 @@
         isPlaying: false,
         duration: 0,
         syncInterval: null,
-        isSeeking: false,
-        web3: {
-            account: null,
-            isConnected: false
-        }
+        isSeeking: false
     };
 
     let animationFrameId = null;
@@ -60,14 +56,7 @@
         playerBg: document.getElementById("player-bg"),
         layerContainer: document.getElementById("layer-container"),
         learnMoreBtn: document.getElementById("learnMoreBtn"),
-        moreText: document.getElementById("moreText"),
-        connectWalletBtn: document.getElementById("connectWalletBtn"),
-        walletInfo: document.getElementById("walletInfo"),
-        walletAddressDisplay: document.getElementById("walletAddressDisplay"),
-        logoutWalletBtn: document.getElementById("logoutWalletBtn"),
-        ownerBlueprintsBtn: document.getElementById("ownerBlueprintsBtn"),
-        blueprintModal: document.getElementById("blueprintModal"),
-        closeBlueprintModal: document.getElementById("closeBlueprintModal")
+        moreText: document.getElementById("moreText")
     };
 
     function populateArtists() {
@@ -126,77 +115,6 @@
         });
     }
 
-    // --- Web3 Wallet & Owner Modal Management ---
-    function initWeb3AndModal() {
-        if (UI.connectWalletBtn) {
-            UI.connectWalletBtn.addEventListener('click', async () => {
-                if (typeof window.ethereum !== 'undefined') {
-                    try {
-                        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                        if (accounts.length > 0) {
-                            handleWalletConnected(accounts[0]);
-                        }
-                    } catch (err) {
-                        console.error("Wallet connection rejected:", err);
-                    }
-                } else {
-                    alert("MetaMask not detected. Please install a Web3 browser extension.");
-                }
-            });
-        }
-
-        if (UI.logoutWalletBtn) {
-            UI.logoutWalletBtn.addEventListener('click', () => {
-                handleWalletLogout();
-            });
-        }
-
-        if (UI.ownerBlueprintsBtn && UI.blueprintModal) {
-            UI.ownerBlueprintsBtn.addEventListener('click', () => {
-                UI.blueprintModal.classList.remove('hidden');
-            });
-        }
-
-        if (UI.closeBlueprintModal && UI.blueprintModal) {
-            UI.closeBlueprintModal.addEventListener('click', () => {
-                UI.blueprintModal.classList.add('hidden');
-            });
-        }
-
-        // Auto-detect existing session
-        if (typeof window.ethereum !== 'undefined') {
-            window.ethereum.request({ method: 'eth_accounts' }).then(accounts => {
-                if (accounts.length > 0) handleWalletConnected(accounts[0]);
-            }).catch(console.error);
-
-            window.ethereum.on('accountsChanged', accounts => {
-                if (accounts.length > 0) handleWalletConnected(accounts[0]);
-                else handleWalletLogout();
-            });
-        }
-    }
-
-    function handleWalletConnected(account) {
-        state.web3.account = account;
-        state.web3.isConnected = true;
-        const shortAddr = `${account.substring(0, 6)}...${account.substring(account.length - 4)}`;
-        
-        if (UI.walletAddressDisplay) UI.walletAddressDisplay.textContent = shortAddr;
-        if (UI.connectWalletBtn) UI.connectWalletBtn.classList.add('hidden');
-        if (UI.walletInfo) UI.walletInfo.classList.remove('hidden');
-        if (UI.ownerBlueprintsBtn) UI.ownerBlueprintsBtn.classList.remove('hidden');
-    }
-
-    function handleWalletLogout() {
-        state.web3.account = null;
-        state.web3.isConnected = false;
-
-        if (UI.walletInfo) UI.walletInfo.classList.add('hidden');
-        if (UI.connectWalletBtn) UI.connectWalletBtn.classList.remove('hidden');
-        if (UI.ownerBlueprintsBtn) UI.ownerBlueprintsBtn.classList.add('hidden');
-        if (UI.blueprintModal) UI.blueprintModal.classList.add('hidden');
-    }
-
     async function fetchJSON() {
         for (const gateway of IPFS_GATEWAYS) {
             try {
@@ -214,6 +132,8 @@
         if (UI.loadingText) UI.loadingText.textContent = "Connecting Layers...";
         if (UI.playPauseBtn) UI.playPauseBtn.disabled = true;
 
+        const activeCIDs = Object.values(state.selections.audio).filter(cid => cid);
+        
         const loadPromises = Object.keys(state.selections.audio).map(layerId => {
             return new Promise((resolve) => {
                 const cid = state.selections.audio[layerId];
@@ -291,7 +211,7 @@
     }
 
     function enforceSync() {
-        if (state.isSeeking) return;
+        if (state.isSeeking) return; // Prevent sync from firing during a seek operation
 
         const nodes = Object.values(state.audioPool).filter(n => !n.paused && n.src);
         if (nodes.length <= 1) return;
@@ -365,6 +285,7 @@
         cancelAnimationFrame(animationFrameId);
     }
 
+    // --- THE ABSOLUTE BUFFER LOCK FIX ---
     async function seekTo(targetTime) {
         if (!state.duration || isNaN(targetTime)) return;
 
@@ -377,6 +298,7 @@
             return;
         }
 
+        // 1. Instantly update UI and show loading spinner
         const percent = (targetTime / state.duration) * 100;
         if (UI.progressFill) UI.progressFill.style.width = `${percent}%`;
         if (UI.currentTimeEl) UI.currentTimeEl.textContent = formatTime(targetTime);
@@ -384,12 +306,14 @@
         UI.loadingOverlay.classList.remove('hidden');
         if (UI.loadingText) UI.loadingText.textContent = "Syncing Layers...";
 
+        // 2. Pause and mute all tracks so they don't start playing staggeringly
         nodes.forEach(node => {
             node.pause();
             node.volume = 0;
-            node.playbackRate = 1.0;
+            node.playbackRate = 1.0; // Reset any previous pitch bending
         });
 
+        // 3. Command the seek and wait for EVERY node to buffer independently
         const seekPromises = nodes.map(node => {
             return new Promise(resolve => {
                 const onReady = () => {
@@ -400,19 +324,23 @@
                 
                 node.addEventListener('seeked', onReady);
                 node.addEventListener('canplay', onReady);
+                
                 node.currentTime = targetTime;
 
+                // Failsafe: if a bad network hangs the event, resolve after 4s to prevent permanent lock
                 setTimeout(resolve, 4000); 
             });
         });
 
         await Promise.all(seekPromises);
 
+        // 4. Hard-snap them all to the exact same millisecond one last time to fix micro-drifts during the wait
         nodes.forEach(node => {
             node.currentTime = targetTime;
-            node.volume = 1;
+            node.volume = 1; // Restore volume
         });
 
+        // 5. Safely resume
         state.isSeeking = false;
         UI.loadingOverlay.classList.add('hidden');
 
@@ -516,7 +444,6 @@
 
     async function init() {
         populateArtists();
-        initWeb3AndModal();
         
         try {
             state.metadata = await fetchJSON();
