@@ -1,370 +1,423 @@
-/**
- * Pann - Web3 Interactive Music Player
- * Non-Blocking Audio Engine with Instant Visual Fallback Rendering
- */
+(async function () {
+    const USE_LOCAL_GITHUB_FILES = false; 
+    const GITHUB_BASE_URL = "./"; 
 
-const CONSTANTS = {
-    CONTRACT_ADDRESS: "0xb6dae651468e9593e4581705a09c10a76ac1e0c8",
-    RPC_URL: "https://cloudflare-eth.com", 
-    IPFS_GATEWAY: "https://cloudflare-ipfs.com/ipfs/"
-};
+    const JSON_URL = "QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq";
+    const IPFS_GATEWAYS = [
+        'https://ipfs.io/ipfs/', 
+        'https://cloudflare-ipfs.com/ipfs/',
+        'https://dweb.link/ipfs/',
+        'https://gateway.pinata.cloud/ipfs/'
+    ];
 
-const TOKEN_MAP = {
-    1: 'Strings', 2: 'Winds', 3: 'Ambience', 4: 'Rhythm', 5: 'Traditional',
-    6: 'Voices', 7: 'Guitars', 8: 'Keys', 9: 'Electronic'
-};
+    const ARTISTS_LIST = [
+        "Pradeep Kumar", "Anthony Daasan", "Kalyani Nair", "Susha", "Ghana NB",
+        "Vidhya Vijay", "Sujith Sreedhar", "Rakesh", "Manoj Y D", "Pravekha",
+        "M S Yeshwanth", "Praveen Sparsh", "Tapass Naresh", "Kanaxx", "Manonmani",
+        "Ramana Balachandran", "Padmaja Sreenivasan", "Samanvitha G. Sasidaran", "Sushmita Narasimhan", "Nidhi Saraogi",
+        "Sriradha Bharath", "Avantika K", "Fathima Henna", "Pranjal Thakore", "Manoj Krishna",
+        "Himanshu Barot", "Manikandan Chembai", "Aditya Ravindran", "Solomon Ravindar", "Karthik Manickavasakam",
+        "Naveen Narendranath", "Rithu Vysakh", "Nikhil Ram", "Mylai M Karthikeyan", "Bharath"
+    ];
 
-const ARTISTS = [
-    "Pradeep Kumar", "Anthony Daasan", "Kalyani Nair", "Susha", "Ghana NB", 
-    "Vidhya Vijay", "Sujith Sreedhar", "Rakesh", "Manoj Y D", "Pravekha", 
-    "M S Yeshwanth", "Praveen Sparsh", "Tapass Naresh", "Kanaxx", "Manonmani", 
-    "Ramana Balachandran", "Padmaja Sreenivasan", "Samanvitha G. Sasidaran", 
-    "Sushmita Narasimhan", "Nidhi Saraogi", "Sriradha Bharath", "Avantika K", 
-    "Fathima Henna", "Pranjal Thakore", "Manoj Krishna", "Himanshu Barot", 
-    "Manikandan Chembai", "Aditya Ravindran", "Solomon Ravindar", "Karthik Manickavasakam", 
-    "Naveen Narendranath", "Rithu Vysakh", "Nikhil Ram", "Mylai M Karthikeyan", 
-    "Bharath Sankar", "Amrit", "Aarvay", "Radar with a K", "Keba Jeremiah", 
-    "Shallu Varun", "Jhanu", "Metapurse"
-];
+    let manifestData = null;
+    const audioElements = {};
+    const audioContexts = {};
 
-const PANN_METADATA = {
-    "layout": {
-        "layers": [
-            { "id": "Strings", "token-id": 1, "states": { "options": [ { "uri": "QmbmRmMToTbS6NQRC2BNEjVHHp9P6yNRJGzwD62QnqFP7Y", "label": "Bright" }, { "uri": "QmWCWvSsBMiSdwg2ULf63ckgN8GaXWju4nZAJ6PRcmAgfo", "label": "Dark" }, { "uri": "QmZqBpUgr1yS3s8C4K36amxXMBBvMiTegV8JhA2zvq5vmT", "label": "Ambient" } ] } },
-            { "id": "Winds", "token-id": 2, "states": { "options": [ { "uri": "Qmb3CLHtFbbQbpiZ5jebxjVPbv5bC6UFnezpqrpApSKmAL", "label": "Bamboo Flute" }, { "uri": "QmUiB45C58Q8mqHpXEt9KGbkvQscdcMqdrZCbM1NLwYpwV", "label": "Penny Whistle" }, { "uri": "QmUmJSCgCuXkJ9tJwLpExf4SxvnZNLySJ6ujSGwxTJ3Dmv", "label": "Melodica" }, { "uri": "QmdyJk4e1NAP3bWTXahE1EDykDbFsRjHc9xW2RVthxUULT", "label": "Nadaswaram" } ] } },
-            { "id": "Ambience", "token-id": 3, "states": { "options": [ { "uri": "QmXzwiB3BK5wUfpTtYQ4RfC9Dw2i1VDsLVnyYSXPnfg3xt", "label": "Kurinji" }, { "uri": "QmW6vRQFSSqLDmWUxXgoRuU1siZEMDcoxzj8BKZ12kZGSa", "label": "Mullai" }, { "uri": "QmQNLJ9L3RmXzL5RwQR3KYaJbZ2Fz1RLZZJaicNzf5kiMJ", "label": "Marutham" }, { "uri": "QmVhTuuS9rNBNrAEVmcXfXchUGW6ZaBME91cwwGzBwDFyp", "label": "Neidhal" }, { "uri": "Qme6JxTt7odkQK1gDFUZaL6URTgUbHMo9GKEgKqbnKD2eM", "label": "Paalai" } ] } },
-            { "id": "Rhythm", "token-id": 4, "states": { "options": [ { "uri": "QmaKqFEEQ2C4ygmHQAHFoN1aTH1t55Hofh5hZtCSkq99WF", "label": "Mridangam & Latin" }, { "uri": "QmNRLwMo4cCeLAp298me2WrPidGvsHubrbvrjuQjoqHkxq", "label": "Acoustic Drums" }, { "uri": "QmNWupbdybDgGHoqd6St2nBYijVF73vtTHwssWFGRssCtk", "label": "Folk" } ] } },
-            { "id": "Traditional", "token-id": 5, "states": { "options": [ { "uri": "QmU19EK7gmy4wo8zaCZyfbabWrkxEgj15LowkZZszAJk7Y", "label": "Sarangi" }, { "uri": "QmStrZzJ33o8eF4XpQVXAvstrFcV1pzuKNof7wRj7gKE7f", "label": "Veena" }, { "uri": "QmZR9UZaMniXqB5REKiK4yDJbuAKTQtmoWtwQTKKKHDcp3", "label": "Slide Guitar - Live" } ] } },
-            { "id": "Voices", "token-id": 6, "states": { "options": [ { "uri": "Qmadsy39UVhtsR9V5TUTqFpLpZLWfRvTUBApMdwQv7xyTq", "label": "Solo" }, { "uri": "QmQTxQauxBL9qbj6XbLT9zsmEhsZr6Zf6RgDhVpEEM3RCj", "label": "Folk voice" }, { "uri": "QmSnk8wDVUiBH5RBFoF2T3JZsnr4Z8Yp5Pp5ds1GGMNEwj", "label": "Choir" } ] } },
-            { "id": "Guitars", "token-id": 7, "states": { "options": [ { "uri": "QmaJSSmhtY5tjx1eQPR5d4ZCdCiMxevzHAhsqwUE9z3FbS", "label": "Acoustic" }, { "uri": "QmWYuyydDJFNYsBkWgMjHMRCANmencFgTTPBFAGzwKpqi8", "label": "Electric" } ] } },
-            { "id": "Keys", "token-id": 8, "states": { "options": [ { "uri": "Qme2Ykbfp8YaFq6A3U1BciXafZW6wsHPAuDhSfCWAiETUC", "label": "Piano" }, { "uri": "QmQYQGA3Voq8xR8y1qEe3fR5HucuZZ7TBG4wkBKG8Lcr56", "label": "Mallet - Live" } ] } },
-            { "id": "Electronic", "token-id": 9, "states": { "options": [ { "uri": "QmSfv4ZcHqjS38zWErJaZfZMBKCCYxamXqkeih4GNVuaTu", "label": "Synth & Bass" }, { "uri": "QmW6SuYciNzd7CigdKArqnrZ4Q9By3LXsK65ftwUuRhFn5", "label": "Modular" }, { "uri": "QmVBpVcrBqJqoKGCHzLBUiynkFyRXJHiG38oKsJgGPB3QL", "label": "Live reactive layer" } ] } }
-        ]
-    },
-    "audio-layout": {
-        "layers": [
-            { "token-id": 1, "states": { "options": [ { "uri": "QmUzMyhSm2HYYexMbZp5BjRJ5wqPTCRvKvDiU8udL5AHPM" }, { "uri": "QmXdM8k6Wje2BwHrigWUmcHAYQar9BfCkQcTMdPtqajWrN" }, { "uri": "QmTLcwbXoXgU2jWjqP7hBFFFtmEJiD22Y7bUw7uSem7UKp" } ] } },
-            { "token-id": 2, "states": { "options": [ { "uri": "Qmc8t887PbT2poBxdXsfEqxUec673aiiREJRg9fnLxJTk7" }, { "uri": "QmWfK4k67yi3aPtJ74vo4tyg7zuxGUxEzLTsTEdLUtZbnK" }, { "uri": "QmUe5QD12QpMeHRMj924d1KQTXcTAPZ31QXZZc4iYxGdsc" }, { "uri": "QmRPpPzNQunUHGR5gtHi6Gjd8zb969yQcMHZNpHJ5ihePj" } ] } },
-            { "token-id": 3, "states": { "options": [ { "uri": "QmfKFKHX8ptEwR7PECjPsofmkqT8hh3xueb3Hq27hGoVGj" }, { "uri": "QmbYZBUaeT6Ei25Xr9eRXtevLBtqQWEb8eEXJaUU71V9pW" }, { "uri": "QmXnHWdEnCxrgf2V3FBmSW8iaD1yBLcA4zt5ftzAshBJMy" }, { "uri": "QmX9Vpgka1FXq2HjzUhvuT7fNRgLtspdWVWfXd5fdpgymx" }, { "uri": "QmeMzFuXRU6UGkCHMv5hmYuoyZHxgGPCAuU8uBBuzNc6gL" } ] } },
-            { "token-id": 4, "states": { "options": [ { "uri": "Qmd7tYFcQ2wfTi1agT8JkannB1VP8dSRypzAdY7ksvnim6" }, { "uri": "QmdwD8ix4qJmRB4SaEBuC8XV19UZR24j7fzmV8jiKBqtDG" }, { "uri": "QmV3ifuMB86MKe1GcPsZrRnSpuBkCkPfLJacqTvDD5gXPE" } ] } },
-            { "token-id": 5, "states": { "options": [ { "uri": "QmRaVXfrm6kvhifNcAaCnbVFYdUY3RfbGTe68qnKhrD5tf" }, { "uri": "QmTvvHMtJdH9BsNeC7Fj3K2ZyoPKFCLo7hAHtu2Ke5VzTu" }, { "uri": "QmPGjwNkL7EncSw8oaemu74P4FArV9SFTvbL8jDNq63V9W" } ] } },
-            { "token-id": 6, "states": { "options": [ { "uri": "QmVqTxhTDSxQXrgAdsjSeUjJWzKXThcWDj4RdBscFhP2X8" }, { "uri": "QmP9pF8S6N4R2o3XXHoBEYxty1eGeQC35TyaMkcarFnEWL" }, { "uri": "QmUbc8aDcn7ex9ZUhNVWPCMNPkCTnfp3Vcut98ZYFw72At" } ] } },
-            { "token-id": 7, "states": { "options": [ { "uri": "QmXtU8d6oAziz9gSZMGcTaZJhKngaGxApohpsBVK2QVxpN" }, { "uri": "QmcELdRFmMLXHUcwrdZE59Y2PdcbhBwK7oSESsLziTuECY" } ] } },
-            { "token-id": 8, "states": { "options": [ { "uri": "QmSr6Qi78jdTPnq3zc7agYiJGT8pu1rnxUN1n5eFZYV1EQ" }, { "uri": "QmbD4gogjdncWrErqeWuJF8JXDnBthBiNZhU7rpYTAU4QR" } ] } },
-            { "token-id": 9, "states": { "options": [ { "uri": "QmQRf8iNjrcN9gF7A6UVpuHss79owBMRRBs28EMSHKNzxz" }, { "uri": "QmeDjc6Ln2ZPWeHa1aDoNCoMsBRvzSkrdhowaLcMN3wkq9" }, { "uri": "QmR6K8HUsXT185jScgpNUTzYBSorxPoW4oCBZVh9nqbgrk" } ] } }
-        ]
-    }
-};
-
-let state = {
-    metadata: PANN_METADATA,
-    isPlaying: false,
-    duration: 1800,
-    activeMix: {},
-    audioNodes: {}, 
-    userWallet: null,
-    syncInterval: null
-};
-
-const UI = {
-    gateway: document.getElementById('gateway-page'),
-    player: document.getElementById('player-page'),
-    artistsContainer: document.getElementById('artists-container'),
-    layerControls: document.getElementById('layer-controls'),
-    activeTags: document.getElementById('active-tags'),
-    artworkContainer: document.getElementById('artwork-container'),
-    playerBg: document.getElementById('player-bg'),
-    gatewayBg: document.getElementById('gateway-dynamic-bg'),
-    btnPlayPause: document.getElementById('btn-play-pause'),
-    btnShuffle: document.getElementById('btn-shuffle'),
-    btnBack: document.getElementById('btn-back'),
-    iconPlay: document.getElementById('icon-play'),
-    iconPause: document.getElementById('icon-pause'),
-    progressBar: document.getElementById('progress-bar'),
-    progressFill: document.getElementById('progress-fill'),
-    timeCurrent: document.getElementById('time-current'),
-    loadingOverlay: document.getElementById('loading-overlay')
-};
-
-function init() {
-    populateArtists();
-    bindEvents();
-    buildUI();
-    generateRandomMix(false); 
-}
-
-function populateArtists() {
-    UI.artistsContainer.innerHTML = '';
-    ARTISTS.forEach(artist => {
-        const span = document.createElement('span');
-        span.textContent = artist + (artist !== ARTISTS[ARTISTS.length - 1] ? ' • ' : '');
-        UI.artistsContainer.appendChild(span);
-    });
-}
-
-function bindEvents() {
-    document.getElementById('btn-learn-more').addEventListener('click', () => {
-        document.getElementById('expanded-desc').classList.remove('hidden');
-        document.getElementById('btn-learn-more').classList.add('hidden');
-    });
-
-    document.getElementById('btn-enter-canvas').addEventListener('click', () => {
-        UI.gateway.classList.remove('active');
-        UI.player.classList.add('active');
-    });
-
-    UI.btnPlayPause.addEventListener('click', togglePlayback);
-    UI.btnShuffle.addEventListener('click', () => generateRandomMix(true));
-    UI.btnBack.addEventListener('click', () => {
-        UI.player.classList.remove('active');
-        UI.gateway.classList.add('active');
-    });
-    
-    document.getElementById('btn-connect-wallet').addEventListener('click', connectWallet);
-    document.getElementById('btn-logout-wallet').addEventListener('click', logoutWallet);
-    UI.progressBar.addEventListener('click', handleSeek);
-}
-
-function resolveIPFSUrl(uri) {
-    if (!uri) return "";
-    const cid = uri.replace("ipfs://", "").split("/")[0];
-    return `${CONSTANTS.IPFS_GATEWAY}${cid}`;
-}
-
-function buildUI() {
-    UI.layerControls.innerHTML = '';
-    const visualLayers = state.metadata.layout.layers;
-    const audioLayers = state.metadata["audio-layout"].layers;
-
-    visualLayers.forEach((vLayer) => {
-        const tokenId = vLayer["token-id"];
-        if (!tokenId || !TOKEN_MAP[tokenId]) return; 
-        
-        const aLayer = audioLayers.find(a => a["token-id"] === tokenId);
-        const layerName = TOKEN_MAP[tokenId];
-
-        const group = document.createElement('div');
-        group.className = 'layer-select-group';
-        
-        const labelWrap = document.createElement('div');
-        labelWrap.className = 'layer-label-wrap';
-        labelWrap.innerHTML = `<span class="layer-label">${layerName}</span>`;
-        
-        const select = document.createElement('select');
-        select.className = 'layer-select';
-        select.dataset.tokenId = tokenId;
-        
-        vLayer.states.options.forEach((opt, optIndex) => {
-            const option = document.createElement('option');
-            option.value = optIndex;
-            option.textContent = opt.label;
-            option.dataset.visualUri = opt.uri;
-            option.dataset.audioUri = aLayer.states.options[optIndex].uri;
-            select.appendChild(option);
-        });
-
-        select.addEventListener('change', (e) => {
-            handleLocalLayerChange(tokenId, e.target.selectedIndex, select.options[e.target.selectedIndex]);
-        });
-
-        group.appendChild(labelWrap);
-        group.appendChild(select);
-        UI.layerControls.appendChild(group);
-    });
-}
-
-function handleLocalLayerChange(tokenId, index, optionEl) {
-    state.activeMix[tokenId] = {
-        label: optionEl.textContent,
-        visualUrl: resolveIPFSUrl(optionEl.dataset.visualUri),
-        audioUrl: resolveIPFSUrl(optionEl.dataset.audioUri),
-        index: index
+    const state = {
+        isPlaying: false,
+        currentTime: 0,
+        duration: 0,
+        selections: {
+            visuals: {},
+            audio: {}
+        },
+        web3: {
+            account: null,
+            isConnected: false
+        }
     };
-    
-    renderVisuals();
-    updateTags();
-    
-    if (state.isPlaying) hotSwapAudio(tokenId);
-}
 
-function generateRandomMix(isShuffle = false) {
-    const selects = document.querySelectorAll('.layer-select');
-    selects.forEach(select => {
-        const opts = select.options;
-        const randomIdx = Math.floor(Math.random() * opts.length);
-        select.selectedIndex = randomIdx;
-        
-        const tokenId = select.dataset.tokenId;
-        state.activeMix[tokenId] = {
-            label: opts[randomIdx].textContent,
-            visualUrl: resolveIPFSUrl(opts[randomIdx].dataset.visualUri),
-            audioUrl: resolveIPFSUrl(opts[randomIdx].dataset.audioUri),
-            index: randomIdx
-        };
-    });
+    const UI = {
+        gatewayPage: document.getElementById('gateway-page'),
+        playerPage: document.getElementById('player-page'),
+        enterBtn: document.getElementById('enterBtn'),
+        playPauseBtn: document.getElementById('playPauseBtn'),
+        stopBtn: document.getElementById('stopBtn'),
+        mixBtn: document.getElementById('mixBtn'),
+        iconPlay: document.getElementById('icon-play'),
+        iconPause: document.getElementById('icon-pause'),
+        progressBar: document.getElementById('progressBar'),
+        progressFill: document.getElementById('progressFill'),
+        currentTimeEl: document.getElementById('current-time'),
+        totalTimeEl: document.getElementById('total-time'),
+        layerContainer: document.getElementById('layer-container'),
+        playerBg: document.getElementById('player-bg'),
+        controls: document.getElementById('controls-container'),
+        loadingOverlay: document.getElementById('loading-overlay'),
+        connectWalletBtn: document.getElementById('connectWalletBtn'),
+        walletInfo: document.getElementById('walletInfo'),
+        walletAddressDisplay: document.getElementById('walletAddressDisplay'),
+        logoutWalletBtn: document.getElementById('logoutWalletBtn'),
+        blueprintList: document.getElementById('blueprint-list')
+    };
 
-    renderVisuals();
-    updateTags();
-
-    if (isShuffle && state.isPlaying) {
-        hotSwapAllAudio();
+    function resolveIPFS(uri) {
+        if (!uri) return '';
+        if (uri.startsWith('http://') || uri.startsWith('https://')) return uri;
+        const hash = uri.replace('ipfs://', '');
+        return `${IPFS_GATEWAYS[0]}${hash}`;
     }
-}
 
-function renderVisuals() {
-    UI.artworkContainer.innerHTML = '';
-    
-    Object.keys(state.activeMix).forEach(tokenId => {
-        const mixData = state.activeMix[tokenId];
-        if (!mixData.visualUrl) return;
+    async function fetchWithFallback(ipfsHash) {
+        for (const gateway of IPFS_GATEWAYS) {
+            try {
+                const response = await fetch(`${gateway}${ipfsHash}`);
+                if (response.ok) return await response.json();
+            } catch (err) {
+                console.warn(`Gateway ${gateway} failed, trying next...`);
+            }
+        }
+        throw new Error("All IPFS gateways failed to resolve manifest.");
+    }
 
-        if (TOKEN_MAP[tokenId] === 'Strings') {
-            UI.playerBg.style.backgroundImage = `url(${mixData.visualUrl})`;
-            UI.gatewayBg.style.backgroundImage = `url(${mixData.visualUrl})`;
-        } else {
+    async function init() {
+        try {
+            if (USE_LOCAL_GITHUB_FILES) {
+                const res = await fetch(`${GITHUB_BASE_URL}manifest.json`);
+                manifestData = await res.json();
+            } else {
+                manifestData = await fetchWithFallback(JSON_URL);
+            }
+
+            buildControls();
+            initTabs();
+            initWeb3();
+        } catch (err) {
+            console.error("Initialization error:", err);
+        }
+    }
+
+    // --- Web3 Wallet Connection Logic ---
+    function initWeb3() {
+        if (UI.connectWalletBtn) {
+            UI.connectWalletBtn.addEventListener('click', async () => {
+                if (typeof window.ethereum !== 'undefined') {
+                    try {
+                        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                        if (accounts.length > 0) {
+                            handleAccountConnected(accounts[0]);
+                        }
+                    } catch (err) {
+                        console.error("User rejected wallet connection:", err);
+                    }
+                } else {
+                    alert("MetaMask or Web3 compatible browser extension not detected. Please install MetaMask.");
+                }
+            });
+        }
+
+        if (UI.logoutWalletBtn) {
+            UI.logoutWalletBtn.addEventListener('click', () => {
+                handleWalletLogout();
+            });
+        }
+
+        // Check if already connected
+        if (typeof window.ethereum !== 'undefined') {
+            window.ethereum.request({ method: 'eth_accounts' }).then(accounts => {
+                if (accounts.length > 0) {
+                    handleAccountConnected(accounts[0]);
+                }
+            }).catch(console.error);
+
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length > 0) {
+                    handleAccountConnected(accounts[0]);
+                } else {
+                    handleWalletLogout();
+                }
+            });
+        }
+    }
+
+    function handleAccountConnected(account) {
+        state.web3.account = account;
+        state.web3.isConnected = true;
+        const shortAddr = `${account.substring(0, 6)}...${account.substring(account.length - 4)}`;
+        
+        UI.walletAddressDisplay.textContent = shortAddr;
+        UI.connectWalletBtn.classList.add('hidden');
+        UI.walletInfo.classList.remove('hidden');
+
+        renderOwnerBlueprints();
+    }
+
+    function handleWalletLogout() {
+        state.web3.account = null;
+        state.web3.isConnected = false;
+
+        UI.walletInfo.classList.add('hidden');
+        UI.connectWalletBtn.classList.remove('hidden');
+        
+        if (UI.blueprintList) {
+            UI.blueprintList.innerHTML = `<div class="blueprint-empty">Connect your MetaMask wallet to view and control your active blueprints.</div>`;
+        }
+    }
+
+    function renderOwnerBlueprints() {
+        if (!UI.blueprintList) return;
+        UI.blueprintList.innerHTML = `
+            <div class="blueprint-card">
+                <div class="blueprint-card-title">Pann Master Blueprint #01 (Landscape: Kurinji)</div>
+                <button class="blueprint-card-action" onclick="alert('Blueprint #01 configuration successfully synchronized on-chain!')">Configure</button>
+            </div>
+            <div class="blueprint-card">
+                <div class="blueprint-card-title">Pann Living Stem #04 (Ambience & Strings)</div>
+                <button class="blueprint-card-action" onclick="alert('Stem #04 configuration successfully synchronized on-chain!')">Configure</button>
+            </div>
+        `;
+    }
+
+    // --- Tab Switcher Logic ---
+    function initTabs() {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetTab = btn.dataset.tab;
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(`tab-${targetTab}`).classList.add('active');
+            });
+        });
+    }
+
+    function buildControls() {
+        if (!manifestData || !manifestData.layers) return;
+
+        UI.controls.innerHTML = '';
+        manifestData.layers.forEach(layer => {
+            const layerId = layer.id;
+            const variants = layer.variants;
+
+            if (variants && variants.length > 0) {
+                state.selections.visuals[layerId] = resolveIPFS(variants[0].visual);
+                state.selections.audio[layerId] = resolveIPFS(variants[0].audio);
+            }
+
+            const group = document.createElement('div');
+            group.className = 'layer-group';
+
+            const label = document.createElement('span');
+            label.className = 'layer-label';
+            label.textContent = layer.name;
+
+            const select = document.createElement('select');
+            select.className = 'layer-select';
+            select.dataset.layerId = layerId;
+
+            variants.forEach((variant, idx) => {
+                const opt = document.createElement('option');
+                opt.value = JSON.stringify({
+                    visual: resolveIPFS(variant.visual),
+                    audio: resolveIPFS(variant.audio)
+                });
+                opt.textContent = variant.name || `Variant ${idx + 1}`;
+                select.appendChild(opt);
+            });
+
+            select.addEventListener('change', async (e) => {
+                const data = JSON.parse(e.target.value);
+                state.selections.visuals[layerId] = data.visual;
+                state.selections.audio[layerId] = data.audio;
+
+                updateVisuals();
+                await loadAudioStreams();
+            });
+
+            group.appendChild(label);
+            group.appendChild(select);
+            UI.controls.appendChild(group);
+        });
+
+        updateVisuals();
+    }
+
+    function updateVisuals() {
+        UI.layerContainer.innerHTML = '';
+        Object.entries(state.selections.visuals).forEach(([layerId, url]) => {
+            if (!url) return;
             const img = document.createElement('img');
-            img.src = mixData.visualUrl;
-            img.className = 'layer-img';
-            UI.artworkContainer.appendChild(img);
-        }
-    });
-}
-
-function updateTags() {
-    UI.activeTags.innerHTML = '';
-    Object.keys(state.activeMix).forEach(tokenId => {
-        const tag = document.createElement('h3');
-        tag.className = 'tag-item';
-        tag.textContent = state.activeMix[tokenId].label;
-        UI.activeTags.appendChild(tag);
-    });
-}
-
-// --- NON-BLOCKING AUDIO ENGINE ---
-async function togglePlayback() {
-    if (state.isPlaying) {
-        pauseAll();
-    } else {
-        await playAllNonBlocking();
+            img.src = url;
+            img.className = 'artwork-layer';
+            img.crossOrigin = 'anonymous';
+            UI.layerContainer.appendChild(img);
+        });
     }
-}
 
-async function playAllNonBlocking() {
-    // Non-blocking approach: instantly start playback without getting trapped in Promise.all locks
-    Object.keys(state.activeMix).forEach(tokenId => {
-        if (!state.audioNodes[tokenId]) {
-            const audio = new Audio();
-            audio.crossOrigin = "anonymous";
-            audio.src = state.activeMix[tokenId].audioUrl;
-            audio.loop = true;
-            audio.preservesPitch = false; 
-            state.audioNodes[tokenId] = audio;
+    async function loadAudioStreams() {
+        UI.loadingOverlay.classList.remove('hidden');
+
+        try {
+            Object.keys(audioElements).forEach(id => {
+                audioElements[id].pause();
+                audioElements[id].src = '';
+                delete audioElements[id];
+            });
+
+            const loadPromises = Object.entries(state.selections.audio).map(([layerId, url]) => {
+                return new Promise((resolve) => {
+                    if (!url) { resolve(); return; }
+                    const audio = new Audio();
+                    audio.crossOrigin = 'anonymous';
+                    audio.preload = 'auto';
+                    audio.loop = true;
+
+                    audio.addEventListener('canplaythrough', () => {
+                        resolve();
+                    }, { once: true });
+
+                    audio.addEventListener('error', () => {
+                        console.warn(`Failed audio stream for layer ${layerId}`);
+                        resolve();
+                    }, { once: true });
+
+                    audio.src = url;
+                    audio.load();
+                    audioElements[layerId] = audio;
+                });
+            });
+
+            await Promise.all(loadPromises);
+        } catch (err) {
+            console.error("Audio stream loading error:", err);
+        } finally {
+            UI.loadingOverlay.classList.add('hidden');
         }
-        
-        const node = state.audioNodes[tokenId];
-        if (node.src) {
-            node.play().catch(e => console.warn("Auto-play restriction handled:", e));
+    }
+
+    function playAudio() {
+        Object.values(audioElements).forEach(audio => {
+            audio.play().catch(err => console.log("Playback interrupted:", err));
+        });
+        state.isPlaying = true;
+        UI.iconPlay.classList.add('hidden');
+        UI.iconPause.classList.remove('hidden');
+        startTicker();
+    }
+
+    function pauseAudio() {
+        Object.values(audioElements).forEach(audio => {
+            audio.pause();
+        });
+        state.isPlaying = false;
+        UI.iconPause.classList.add('hidden');
+        UI.iconPlay.classList.remove('hidden');
+        stopTicker();
+    }
+
+    function stopAudio() {
+        pauseAudio();
+        Object.values(audioElements).forEach(audio => {
+            audio.currentTime = 0;
+        });
+        state.currentTime = 0;
+        updateProgressUI();
+    }
+
+    let tickerInterval = null;
+    function startTicker() {
+        if (tickerInterval) clearInterval(tickerInterval);
+        tickerInterval = setInterval(() => {
+            const primaryAudio = Object.values(audioElements)[0];
+            if (primaryAudio && !isNaN(primaryAudio.duration)) {
+                state.currentTime = primaryAudio.currentTime;
+                state.duration = primaryAudio.duration;
+                updateProgressUI();
+            }
+        }, 250);
+    }
+
+    function stopTicker() {
+        if (tickerInterval) clearInterval(tickerInterval);
+    }
+
+    function updateProgressUI() {
+        if (UI.currentTimeEl) UI.currentTimeEl.textContent = formatTime(state.currentTime);
+        if (UI.totalTimeEl) UI.totalTimeEl.textContent = formatTime(state.duration || 0);
+        if (UI.progressFill && state.duration > 0) {
+            const pct = (state.currentTime / state.duration) * 100;
+            UI.progressFill.style.width = `${pct}%`;
         }
-    });
+    }
 
-    state.isPlaying = true;
-    document.body.classList.add('playing');
-    UI.iconPlay.classList.add('hidden');
-    UI.iconPause.classList.remove('hidden');
-    
-    startSyncWatchdog();
-    startProgressTimer();
-}
+    function formatTime(secs) {
+        const m = Math.floor(secs / 60);
+        const s = Math.floor(secs % 60);
+        return `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
 
-function pauseAll() {
-    Object.values(state.audioNodes).forEach(node => { if(node.src) node.pause(); });
-    state.isPlaying = false;
-    document.body.classList.remove('playing');
-    UI.iconPlay.classList.remove('hidden');
-    UI.iconPause.classList.add('hidden');
-    clearInterval(state.syncInterval);
-}
+    function handleProgressInteraction(e) {
+        if (!state.duration) return;
+        const rect = UI.progressBar.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clickX = Math.max(0, Math.min(clientX - rect.left, rect.width));
+        const pct = clickX / rect.width;
+        const newTime = pct * state.duration;
 
-function handleSeek(e) {
-    if (!state.isPlaying) return;
-    const rect = UI.progressBar.getBoundingClientRect();
-    const percent = (e.clientX - rect.left) / rect.width;
-    const targetTime = percent * state.duration;
-    
-    Object.values(state.audioNodes).forEach(node => {
-        if (node.src) node.currentTime = targetTime;
-    });
-}
+        Object.values(audioElements).forEach(audio => {
+            audio.currentTime = newTime;
+        });
+        state.currentTime = newTime;
+        updateProgressUI();
+    }
 
-function startSyncWatchdog() {
-    clearInterval(state.syncInterval);
-    state.syncInterval = setInterval(() => {
-        if (!state.isPlaying) return;
-        const nodes = Object.values(state.audioNodes).filter(n => n.src);
-        if (nodes.length < 2) return;
-        
-        const masterTime = nodes[0].currentTime;
-        for (let i = 1; i < nodes.length; i++) {
-            const drift = masterTime - nodes[i].currentTime;
-            nodes[i].playbackRate = Math.abs(drift) > 0.05 ? (drift > 0 ? 1.05 : 0.95) : 1.0;
-        }
-    }, 1000);
-}
+    if (UI.enterBtn) {
+        UI.enterBtn.addEventListener('click', async () => {
+            UI.gatewayPage.classList.remove('active');
+            setTimeout(() => {
+                UI.gatewayPage.classList.add('hidden');
+                UI.playerPage.classList.remove('hidden');
+                setTimeout(() => UI.playerPage.classList.add('active'), 50);
+            }, 600);
 
-function hotSwapAllAudio() {
-    pauseAll();
-    Object.values(state.audioNodes).forEach(node => { node.pause(); node.src = ""; });
-    state.audioNodes = {};
-    playAllNonBlocking();
-}
+            await loadAudioStreams();
+        });
+    }
 
-function hotSwapAudio(tokenId) {
-    if(!state.activeMix[tokenId].audioUrl) return;
-    const oldNode = state.audioNodes[tokenId];
-    const targetTime = oldNode ? oldNode.currentTime : 0;
-    
-    const newNode = new Audio();
-    newNode.crossOrigin = "anonymous";
-    newNode.src = state.activeMix[tokenId].audioUrl;
-    newNode.loop = true;
-    newNode.preservesPitch = false;
-    
-    newNode.currentTime = targetTime;
-    newNode.play().catch(e => {});
-    
-    if (oldNode) { oldNode.pause(); oldNode.src = ""; }
-    state.audioNodes[tokenId] = newNode;
-}
+    if (UI.playPauseBtn) {
+        UI.playPauseBtn.addEventListener('click', async () => {
+            if (state.isPlaying) pauseAudio();
+            else playAudio();
+        });
+    }
 
-function startProgressTimer() {
-    setInterval(() => {
-        if (!state.isPlaying) return;
-        const node = Object.values(state.audioNodes)[0];
-        if (!node || !node.src) return;
-        
-        const current = node.currentTime;
-        UI.progressFill.style.width = `${(current / state.duration) * 100}%`;
-        const mins = Math.floor(current / 60).toString().padStart(2, '0');
-        const secs = Math.floor(current % 60).toString().padStart(2, '0');
-        UI.timeCurrent.textContent = `${mins}:${secs}`;
-    }, 1000);
-}
+    if (UI.stopBtn) {
+        UI.stopBtn.addEventListener('click', () => stopAudio());
+    }
 
-// --- WEB3 ---
-async function connectWallet() {
-    if (!window.ethereum) return alert("Install MetaMask to connect.");
-    try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        state.userWallet = accounts[0];
-        document.getElementById('btn-connect-wallet').classList.add('hidden');
-        document.getElementById('btn-logout-wallet').classList.remove('hidden');
-    } catch (e) { console.error("Connection denied."); }
-}
+    if (UI.mixBtn) {
+        UI.mixBtn.addEventListener('click', async () => {
+            UI.controls.querySelectorAll('.layer-select').forEach(select => {
+                select.selectedIndex = Math.floor(Math.random() * select.options.length);
+                const data = JSON.parse(select.value);
+                state.selections.visuals[select.dataset.layerId] = data.visual;
+                state.selections.audio[select.dataset.layerId] = data.audio;
+            });
 
-function logoutWallet() {
-    state.userWallet = null;
-    document.getElementById('btn-connect-wallet').classList.remove('hidden');
-    document.getElementById('btn-logout-wallet').classList.add('hidden');
-}
+            updateVisuals();
+            await loadAudioStreams();
+        });
+    }
 
-init();
+    if (UI.progressBar) {
+        UI.progressBar.addEventListener('click', handleProgressInteraction);
+        UI.progressBar.addEventListener('touchstart', handleProgressInteraction, { passive: true });
+    }
+
+    init();
+})();
