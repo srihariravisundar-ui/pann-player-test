@@ -65,7 +65,9 @@
         walletInfo: document.getElementById("walletInfo"),
         walletAddressDisplay: document.getElementById("walletAddressDisplay"),
         logoutWalletBtn: document.getElementById("logoutWalletBtn"),
-        blueprintList: document.getElementById("blueprint-list")
+        ownerBlueprintsBtn: document.getElementById("ownerBlueprintsBtn"),
+        blueprintModal: document.getElementById("blueprintModal"),
+        closeBlueprintModal: document.getElementById("closeBlueprintModal")
     };
 
     function populateArtists() {
@@ -124,24 +126,8 @@
         });
     }
 
-    // --- Web3 & Tab Management ---
-    function initWeb3AndTabs() {
-        // Tab switching logic
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const targetTab = btn.dataset.tab;
-                tabBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-
-                document.querySelectorAll('.tab-content').forEach(content => {
-                    content.classList.remove('active');
-                });
-                document.getElementById(`tab-${targetTab}`).classList.add('active');
-            });
-        });
-
-        // Connect Wallet
+    // --- Web3 Wallet & Owner Modal Management ---
+    function initWeb3AndModal() {
         if (UI.connectWalletBtn) {
             UI.connectWalletBtn.addEventListener('click', async () => {
                 if (typeof window.ethereum !== 'undefined') {
@@ -159,10 +145,21 @@
             });
         }
 
-        // Logout Wallet
         if (UI.logoutWalletBtn) {
             UI.logoutWalletBtn.addEventListener('click', () => {
                 handleWalletLogout();
+            });
+        }
+
+        if (UI.ownerBlueprintsBtn && UI.blueprintModal) {
+            UI.ownerBlueprintsBtn.addEventListener('click', () => {
+                UI.blueprintModal.classList.remove('hidden');
+            });
+        }
+
+        if (UI.closeBlueprintModal && UI.blueprintModal) {
+            UI.closeBlueprintModal.addEventListener('click', () => {
+                UI.blueprintModal.classList.add('hidden');
             });
         }
 
@@ -187,8 +184,7 @@
         if (UI.walletAddressDisplay) UI.walletAddressDisplay.textContent = shortAddr;
         if (UI.connectWalletBtn) UI.connectWalletBtn.classList.add('hidden');
         if (UI.walletInfo) UI.walletInfo.classList.remove('hidden');
-
-        renderOwnerBlueprints();
+        if (UI.ownerBlueprintsBtn) UI.ownerBlueprintsBtn.classList.remove('hidden');
     }
 
     function handleWalletLogout() {
@@ -197,24 +193,8 @@
 
         if (UI.walletInfo) UI.walletInfo.classList.add('hidden');
         if (UI.connectWalletBtn) UI.connectWalletBtn.classList.remove('hidden');
-        
-        if (UI.blueprintList) {
-            UI.blueprintList.innerHTML = `<div class="blueprint-empty">Connect your MetaMask wallet to access owner layer configurations.</div>`;
-        }
-    }
-
-    function renderOwnerBlueprints() {
-        if (!UI.blueprintList) return;
-        UI.blueprintList.innerHTML = `
-            <div class="blueprint-card">
-                <div class="blueprint-card-title">Pann Master Stem #01 (Kurinji Landscape)</div>
-                <button class="blueprint-card-action" onclick="alert('Owner Layer Override synchronized on-chain successfully!')">Sync Layer</button>
-            </div>
-            <div class="blueprint-card">
-                <div class="blueprint-card-title">Pann Ambient Stem #03 (Mullai Landscape)</div>
-                <button class="blueprint-card-action" onclick="alert('Owner Layer Override synchronized on-chain successfully!')">Sync Layer</button>
-            </div>
-        `;
+        if (UI.ownerBlueprintsBtn) UI.ownerBlueprintsBtn.classList.add('hidden');
+        if (UI.blueprintModal) UI.blueprintModal.classList.add('hidden');
     }
 
     async function fetchJSON() {
@@ -536,7 +516,7 @@
 
     async function init() {
         populateArtists();
-        initWeb3AndTabs();
+        initWeb3AndModal();
         
         try {
             state.metadata = await fetchJSON();
