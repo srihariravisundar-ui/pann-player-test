@@ -1,11 +1,12 @@
-// web3.js - Isolated Web3 Integration for Pann
-// Handles MetaMask connection, layer ownership validation, and on-chain publishing.
+// web3.js - Isolated Web3 Integration for Pann (Read & Write)
 
 const WEB3_CONFIG = {
     contractAddress: "0x96be3dfdf788b7078ef7514e076ccfd33acfd7cd",
     chainId: 1, // Ethereum Mainnet
     
-    // Mapping your UI layer IDs to the Smart Contract Token IDs
+    // Free Public Node so fans don't need MetaMask to hear the live state
+    publicRpcUrl: "https://cloudflare-eth.com",
+    
     layerTokens: {
         "strings": 4285,
         "winds": 4286,
@@ -13,20 +14,24 @@ const WEB3_CONFIG = {
         "rhythm": 4288,
         "traditional-melody": 4289, 
         "voices": 4290,
-        "guitars": 0, // Placeholder until minted
+        "guitars": 4291, 
         "keys": 4292,
         "electronic": 4293
     },
     
-    // Standard Async Art V1/V2 ERC-721 ABI
     abi: [
-        "function ownerOf(uint256 tokenId) view returns (address)",
-        "function useControlToken(uint256 tokenId, uint256 variantId)" 
+        // WRITE functions (Requires MetaMask)
+        "function balanceOf(address account, uint256 id) view returns (uint256)",
+        "function useControlToken(uint256 tokenId, uint256 variantId)",
+        
+        // READ function (Publicly accessible)
+        // TODO: If Etherscan shows a different name than 'getControlToken', change it here!
+        "function getControlToken(uint256 tokenId) view returns (uint256)" 
     ]
 };
 
 const web3State = {
-    provider: null,
+    provider: null, // User's MetaMask
     signer: null,
     address: null,
     ownedLayers: [],
@@ -34,6 +39,10 @@ const web3State = {
 };
 
 async function initWeb3() {
+    // 1. Instantly fetch and sync the live Master State for all visitors
+    syncLiveState();
+
+    // 2. Setup Wallet Buttons for Owners
     const connectBtn = document.getElementById('connect-wallet-btn');
     const closeBtn = document.getElementById('close-owner-tab');
     const publishBtn = document.getElementById('publish-btn');
@@ -56,6 +65,44 @@ async function initWeb3() {
     }
 }
 
+// --- THE GLOBAL READ FUNCTION (For Fans & Visitors) ---
+async function syncLiveState() {
+    try {
+        console.log("Fetching live Master state from Ethereum...");
+        // Connect to the free Cloudflare Ethereum node
+        const publicProvider = new ethers.providers.JsonRpcProvider(WEB3_CONFIG.publicRpcUrl);
+        const readContract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, publicProvider);
+
+        const originalSelects = document.querySelectorAll('.layer-select');
+
+        for (const select of originalSelects) {
+            const layerId = select.dataset.layerId || select.id.replace('select-', '');
+            const normalizedLayerId = layerId.toLowerCase().replace(/\s+/g, '-');
+            const tokenId = WEB3_CONFIG.layerTokens[normalizedLayerId] || WEB3_CONFIG.layerTokens[layerId];
+
+            if (!tokenId || tokenId === 0) continue;
+
+            try {
+                // Ask the blockchain for the current variant
+                const currentVariant = await readContract.getControlToken(tokenId);
+                
+                // If the blockchain state is different from the UI, update it
+                if (select.selectedIndex !== Number(currentVariant)) {
+                    select.selectedIndex = Number(currentVariant);
+                    // Dispatch change event to trigger your original script.js audio sync
+                    select.dispatchEvent(new Event('change'));
+                }
+            } catch (err) {
+                console.warn(`Could not fetch state for ${layerId} (Token ${tokenId}). It may be using a different read function.`);
+            }
+        }
+        console.log("Pann is fully synced with the blockchain!");
+    } catch (error) {
+        console.error("Failed to sync global state:", error);
+    }
+}
+
+// --- THE WRITE FUNCTIONS (For Layer Owners) ---
 async function connectWallet() {
     if (typeof window.ethereum === 'undefined') {
         alert("MetaMask is not installed. Please install a Web3 wallet to continue.");
@@ -65,19 +112,12 @@ async function connectWallet() {
     try {
         const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
         
-        // Force Ethereum Mainnet
         const network = await provider.getNetwork();
         if (network.chainId !== WEB3_CONFIG.chainId) {
-            try {
-                await window.ethereum.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: ethers.utils.hexValue(WEB3_CONFIG.chainId) }],
-                });
-            } catch (switchError) {
-                console.error("Failed to switch to Ethereum Mainnet:", switchError);
-                alert("Please switch your MetaMask network to Ethereum Mainnet.");
-                return;
-            }
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: ethers.utils.hexValue(WEB3_CONFIG.chainId) }],
+            });
         }
 
         await provider.send("eth_requestAccounts", []);
@@ -88,7 +128,6 @@ async function connectWallet() {
         web3State.signer = signer;
         web3State.address = address;
 
-        // Update Button UI
         const connectBtn = document.getElementById('connect-wallet-btn');
         connectBtn.innerHTML = `⚙ ${address.slice(0, 6)}...${address.slice(-4)}`;
         connectBtn.classList.add('connected');
@@ -98,7 +137,6 @@ async function connectWallet() {
         
     } catch (error) {
         console.error("Wallet connection failed:", error);
-        alert("Wallet connection was rejected or failed.");
     }
 }
 
@@ -108,10 +146,10 @@ async function verifyOwnership() {
     const contract = new ethers.Contract(WEB3_CONFIG.contractAddress, WEB3_CONFIG.abi, web3State.provider);
     
     for (const [layerId, tokenId] of Object.entries(WEB3_CONFIG.layerTokens)) {
-        if (tokenId === 0) continue; // Skip guitars for now
+        if (tokenId === 0) continue; 
         try {
-            const owner = await contract.ownerOf(tokenId);
-            if (owner.toLowerCase() === web3State.address.toLowerCase()) {
+            const balance = await contract.balanceOf(web3State.address, tokenId);
+            if (balance.gt(0)) {
                 web3State.ownedLayers.push(layerId);
             }
         } catch (error) {
@@ -136,13 +174,10 @@ function openOwnerTab() {
     }
     
     publishBtn.disabled = false;
-    
     const originalSelects = document.querySelectorAll('.layer-select');
     
     originalSelects.forEach(originalSelect => {
         const layerId = originalSelect.dataset.layerId || originalSelect.id.replace('select-', '');
-        
-        // Ensure mapping matches UI keys (handle formatting differences like spaces/dashes)
         const normalizedLayerId = layerId.toLowerCase().replace(/\s+/g, '-');
         
         const row = document.createElement('div');
@@ -195,7 +230,6 @@ async function publishToBlockchain() {
     const layerIdsToUpdate = Object.keys(web3State.pendingChanges);
     if (layerIdsToUpdate.length === 0) {
         statusText.textContent = "No changes to publish.";
-        statusText.style.color = "#fff";
         return;
     }
     
@@ -224,12 +258,10 @@ async function publishToBlockchain() {
         layerIdsToUpdate.forEach(layerId => {
             const change = web3State.pendingChanges[layerId];
             change.originalElement.value = change.newValue;
-            // Triggers the core audio/visual engine to sync
             change.originalElement.dispatchEvent(new Event('change'));
         });
         
         web3State.pendingChanges = {};
-        
         setTimeout(() => {
             document.getElementById('owner-tab-overlay').classList.remove('active');
             statusText.textContent = "";
