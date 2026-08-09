@@ -41,6 +41,7 @@
         <!-- Player Page -->
         <div id="player-page" class="page hidden">
             <!-- Active tags at top left -->
+            <button id="connect-wallet-btn" class="wallet-btn">Connect Wallet</button>
             <div class="player-top-left">
                 <div id="active-tags" class="tags-stack"></div>
             </div>
@@ -79,7 +80,23 @@
         <div class="spinner"></div>
         <span id="loading-text">Connecting Layers...</span>
     </div>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+<script src="web3.js" defer></script>
     <script src="script.js"></script>
+    <div id="owner-tab-overlay" class="owner-overlay hidden">
+    <div class="owner-modal-content">
+        <button id="close-owner-tab" class="close-btn">×</button>
+        <h2 class="serif">Master Stem Controls</h2>
+        <p class="owner-description">Modify your owned layers below. Changes will be published to the Ethereum blockchain and reflected on the Master Stem.</p>
+        
+        <div id="owner-layer-controls" class="owner-controls-container">
+            </div>
+        
+        <div class="owner-actions">
+            <button id="publish-btn" class="publish-btn" disabled>Publish to Blockchain</button>
+            <p id="tx-status" class="tx-status"></p>
+        </div>
+    </div>
+</div>
 </body>
 </html>
