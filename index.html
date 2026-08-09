@@ -6,55 +6,54 @@
     <title>Pann</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,600&display=swap" rel="stylesheet">
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-    <script src="web3.js" defer></script>
 </head>
 <body>
+    <!-- Background (Full screen strings) -->
     <div id="player-bg" class="background-container"></div>
 
+    <!-- Artwork (Grouped floating container for safe animation) -->
     <div class="artwork-wrapper">
         <div id="layer-container" class="artwork-container"></div>
     </div>
 
+    <!-- UI Overlay -->
     <div id="ui-layer" class="ui-container">
         
+        <!-- Gateway Page -->
         <div id="gateway-page" class="page active">
             <div class="gateway-content">
                 <h1>Pann</h1>
                 <div class="description-container">
                     <p class="description">
                         The seed of all melodies, "பண்" is the truest representation of Tamil music, culture, land and its people. A voyage that connects the past, beholds the present and accompanies into the future, Pann is the beginning of a journey into the world of performed, programmable art. 
-                        <span id="moreText" class="hidden">This 30-minute piece of music written in Tamil, was commissioned and produced by Metapurse and is a first of its kind NFT from India. It had its premiere in New York’s Terminal 5 on the 4th of November 2021 at Dreamverse, the world’s largest NFT exhibition curated by Metapurse. Pann became the ambient music for this historic event that merged the physical and digital realms for the first time, showcasing the pinnacle of NFT art of more than 150 artists from around the world.<br><br>Woven from nine layers of music, each having several variants within it, the Pann master track captures a fresh collaborative performance of 40 musicians and visual artists. It can be heard in 19,440 different combinations, making it a dynamic piece of music with artwork done by Susha, Ghana N B and Vidhya Vijay that evolve along with every changing state of music. While most of the variants were recorded at 2barQ Studios, Chennai, Tamil Nadu by Sujith Sreedhar and Divine Joseph, the cherry on the cake is the live performance of some of the musical and art variants captured during the Dreamverse experience.</span>
+                        <span id="moreText" class="hidden">This 30-minute piece of music written in Tamil, was commissioned and produced by Metapurse and is a first of its kind NFT from India. It had its premiere in New York’s Terminal 5 on the 4th of November 2021 at Dreamverse, the world’s largest NFT exhibition curated by Metapurse. Pann became the ambient music for this historic event that merged the physical and digital realms for the first time, showcasing the pinnacle of NFT art of more than 150 artists from around the world. Woven from nine layers of music, each having several variants within it, the Pann master track captures a fresh collaborative performance of 40 musicians and visual artists. It can be heard in 19440 different combinations, making it a dynamic piece of music with artwork done by Susha, Ghana N B and Vidhya Vijay that evolve along with every changing state of music. While most of the variants were recorded at 2barQ Studios, Chennai, Tamil Nadu by Sujith Sreedhar and Divine Joseph, the cherry on the cake is the live performance of some of the musical and art variants captured during the Dreamverse experience.</span>
                     </p>
-                    <button id="readMoreBtn" class="read-more-btn">Learn More</button>
+                    <button id="learnMoreBtn" class="text-link">Learn more</button>
                 </div>
-                
+                <!-- This button unlocks Safari Audio instantly -->
+                <button id="enterBtn" class="primary-btn">Enter the Canvas</button>
                 <div class="artists-section">
-                    <p class="artists-label">Featuring Artists</p>
-                    <div class="artists-slider" id="artistsSlider">
-                        <div class="artists-track" id="artistsTrack"></div>
-                    </div>
+                    <div id="artists-container" class="gateway-tags"></div>
                 </div>
-
-                <button id="enter-btn">Enter</button>
             </div>
         </div>
 
+        <!-- Player Page -->
         <div id="player-page" class="page hidden">
-            <div class="player-top">
-                <h2>Pann</h2>
-                <div class="tag-container" id="tag-container"></div>
+            <!-- Active tags at top left -->
+            <div class="player-top-left">
+                <div id="active-tags" class="tags-stack"></div>
             </div>
-            
+
+            <!-- Controls locked to safe bottom -->
             <div class="player-bottom">
-                <div id="controls" class="controls-container"></div>
-                
+                <div id="controls" class="layer-dropdowns"></div>
+
                 <div class="transport-dock">
                     <div class="progress-wrapper">
                         <span id="current-time">0:00</span>
-                        <div class="progress-bar" id="progress-bar">
-                            <div class="progress-fill" id="progress-fill"></div>
+                        <div id="progressBar" class="progress-bar">
+                            <div id="progress-fill" class="progress-fill"></div>
                         </div>
                         <span id="total-time">0:00</span>
                     </div>
@@ -67,12 +66,18 @@
                             <svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M6 6h12v12H6z"/></svg>
                         </button>
                         <button id="mixBtn" class="icon-btn">
-                            <svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04-4.5 4.5 1.42 1.42 4.5-4.5L20 9V4h-5.5zM3.5 14.5l1.42-1.42 4.5 4.5L14 13.5l1.42 1.42-6.42 6.42-5.5-5.5z"/></svg>
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
                         </button>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="hidden">
+        <div class="spinner"></div>
+        <span id="loading-text">Connecting Layers...</span>
     </div>
 
     <script src="script.js"></script>
