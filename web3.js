@@ -12,7 +12,7 @@ const WEB3_CONFIG = {
         "winds": 4286,
         "ambience": 4287,
         "rhythm": 4288,
-        "traditional-melody": 4289, 
+        "traditional": 4289, 
         "voices": 4290,
         "guitars": 4291, 
         "keys": 4292,
