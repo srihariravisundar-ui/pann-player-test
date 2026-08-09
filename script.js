@@ -1,12 +1,11 @@
 /**
  * Pann - Web3 Interactive Music Player
- * Fixed Initialization Sequence & Aggressive IPFS Cascading
+ * 100% Transparent Architecture & Zero-Fetch Metadata
  */
 
 const CONSTANTS = {
     CONTRACT_ADDRESS: "0xb6dae651468e9593e4581705a09c10a76ac1e0c8",
     RPC_URL: "https://cloudflare-eth.com", 
-    JSON_CID: "QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq",
     IPFS_GATEWAYS: [
         "https://cloudflare-ipfs.com/ipfs/",
         "https://dweb.link/ipfs/",
@@ -32,19 +31,43 @@ const ARTISTS = [
     "Shallu Varun", "Jhanu", "Metapurse"
 ];
 
-const ABI = [
-    "function ownerOf(uint256 tokenId) view returns (address)",
-    "function useControlToken(uint256 _controlToken, uint256 _layerState) external"
-];
+// HARDCODED METADATA - Completely bypasses IPFS 429 Rate Limits
+const PANN_METADATA = {
+    "layout": {
+        "layers": [
+            { "id": "Strings", "token-id": 1, "states": { "options": [ { "uri": "QmbmRmMToTbS6NQRC2BNEjVHHp9P6yNRJGzwD62QnqFP7Y", "label": "Bright" }, { "uri": "QmWCWvSsBMiSdwg2ULf63ckgN8GaXWju4nZAJ6PRcmAgfo", "label": "Dark" }, { "uri": "QmZqBpUgr1yS3s8C4K36amxXMBBvMiTegV8JhA2zvq5vmT", "label": "Ambient" } ] } },
+            { "id": "Winds", "token-id": 2, "states": { "options": [ { "uri": "Qmb3CLHtFbbQbpiZ5jebxjVPbv5bC6UFnezpqrpApSKmAL", "label": "Bamboo Flute" }, { "uri": "QmUiB45C58Q8mqHpXEt9KGbkvQscdcMqdrZCbM1NLwYpwV", "label": "Penny Whistle" }, { "uri": "QmUmJSCgCuXkJ9tJwLpExf4SxvnZNLySJ6ujSGwxTJ3Dmv", "label": "Melodica" }, { "uri": "QmdyJk4e1NAP3bWTXahE1EDykDbFsRjHc9xW2RVthxUULT", "label": "Nadaswaram" } ] } },
+            { "id": "Ambience", "token-id": 3, "states": { "options": [ { "uri": "QmXzwiB3BK5wUfpTtYQ4RfC9Dw2i1VDsLVnyYSXPnfg3xt", "label": "Kurinji" }, { "uri": "QmW6vRQFSSqLDmWUxXgoRuU1siZEMDcoxzj8BKZ12kZGSa", "label": "Mullai" }, { "uri": "QmQNLJ9L3RmXzL5RwQR3KYaJbZ2Fz1RLZZJaicNzf5kiMJ", "label": "Marutham" }, { "uri": "QmVhTuuS9rNBNrAEVmcXfXchUGW6ZaBME91cwwGzBwDFyp", "label": "Neidhal" }, { "uri": "Qme6JxTt7odkQK1gDFUZaL6URTgUbHMo9GKEgKqbnKD2eM", "label": "Paalai" } ] } },
+            { "id": "Rhythm", "token-id": 4, "states": { "options": [ { "uri": "QmaKqFEEQ2C4ygmHQAHFoN1aTH1t55Hofh5hZtCSkq99WF", "label": "Mridangam & Latin" }, { "uri": "QmNRLwMo4cCeLAp298me2WrPidGvsHubrbvrjuQjoqHkxq", "label": "Acoustic Drums" }, { "uri": "QmNWupbdybDgGHoqd6St2nBYijVF73vtTHwssWFGRssCtk", "label": "Folk" } ] } },
+            { "id": "Traditional", "token-id": 5, "states": { "options": [ { "uri": "QmU19EK7gmy4wo8zaCZyfbabWrkxEgj15LowkZZszAJk7Y", "label": "Sarangi" }, { "uri": "QmStrZzJ33o8eF4XpQVXAvstrFcV1pzuKNof7wRj7gKE7f", "label": "Veena" }, { "uri": "QmZR9UZaMniXqB5REKiK4yDJbuAKTQtmoWtwQTKKKHDcp3", "label": "Slide Guitar - Live" } ] } },
+            { "id": "Voices", "token-id": 6, "states": { "options": [ { "uri": "Qmadsy39UVhtsR9V5TUTqFpLpZLWfRvTUBApMdwQv7xyTq", "label": "Solo" }, { "uri": "QmQTxQauxBL9qbj6XbLT9zsmEhsZr6Zf6RgDhVpEEM3RCj", "label": "Folk voice" }, { "uri": "QmSnk8wDVUiBH5RBFoF2T3JZsnr4Z8Yp5Pp5ds1GGMNEwj", "label": "Choir" } ] } },
+            { "id": "Guitars", "token-id": 7, "states": { "options": [ { "uri": "QmaJSSmhtY5tjx1eQPR5d4ZCdCiMxevzHAhsqwUE9z3FbS", "label": "Acoustic" }, { "uri": "QmWYuyydDJFNYsBkWgMjHMRCANmencFgTTPBFAGzwKpqi8", "label": "Electric" } ] } },
+            { "id": "Keys", "token-id": 8, "states": { "options": [ { "uri": "Qme2Ykbfp8YaFq6A3U1BciXafZW6wsHPAuDhSfCWAiETUC", "label": "Piano" }, { "uri": "QmQYQGA3Voq8xR8y1qEe3fR5HucuZZ7TBG4wkBKG8Lcr56", "label": "Mallet - Live" } ] } },
+            { "id": "Electronic", "token-id": 9, "states": { "options": [ { "uri": "QmSfv4ZcHqjS38zWErJaZfZMBKCCYxamXqkeih4GNVuaTu", "label": "Synth & Bass" }, { "uri": "QmW6SuYciNzd7CigdKArqnrZ4Q9By3LXsK65ftwUuRhFn5", "label": "Modular" }, { "uri": "QmVBpVcrBqJqoKGCHzLBUiynkFyRXJHiG38oKsJgGPB3QL", "label": "Live reactive layer" } ] } }
+        ]
+    },
+    "audio-layout": {
+        "layers": [
+            { "token-id": 1, "states": { "options": [ { "uri": "QmUzMyhSm2HYYexMbZp5BjRJ5wqPTCRvKvDiU8udL5AHPM" }, { "uri": "QmXdM8k6Wje2BwHrigWUmcHAYQar9BfCkQcTMdPtqajWrN" }, { "uri": "QmTLcwbXoXgU2jWjqP7hBFFFtmEJiD22Y7bUw7uSem7UKp" } ] } },
+            { "token-id": 2, "states": { "options": [ { "uri": "Qmc8t887PbT2poBxdXsfEqxUec673aiiREJRg9fnLxJTk7" }, { "uri": "QmWfK4k67yi3aPtJ74vo4tyg7zuxGUxEzLTsTEdLUtZbnK" }, { "uri": "QmUe5QD12QpMeHRMj924d1KQTXcTAPZ31QXZZc4iYxGdsc" }, { "uri": "QmRPpPzNQunUHGR5gtHi6Gjd8zb969yQcMHZNpHJ5ihePj" } ] } },
+            { "token-id": 3, "states": { "options": [ { "uri": "QmfKFKHX8ptEwR7PECjPsofmkqT8hh3xueb3Hq27hGoVGj" }, { "uri": "QmbYZBUaeT6Ei25Xr9eRXtevLBtqQWEb8eEXJaUU71V9pW" }, { "uri": "QmXnHWdEnCxrgf2V3FBmSW8iaD1yBLcA4zt5ftzAshBJMy" }, { "uri": "QmX9Vpgka1FXq2HjzUhvuT7fNRgLtspdWVWfXd5fdpgymx" }, { "uri": "QmeMzFuXRU6UGkCHMv5hmYuoyZHxgGPCAuU8uBBuzNc6gL" } ] } },
+            { "token-id": 4, "states": { "options": [ { "uri": "Qmd7tYFcQ2wfTi1agT8JkannB1VP8dSRypzAdY7ksvnim6" }, { "uri": "QmdwD8ix4qJmRB4SaEBuC8XV19UZR24j7fzmV8jiKBqtDG" }, { "uri": "QmV3ifuMB86MKe1GcPsZrRnSpuBkCkPfLJacqTvDD5gXPE" } ] } },
+            { "token-id": 5, "states": { "options": [ { "uri": "QmRaVXfrm6kvhifNcAaCnbVFYdUY3RfbGTe68qnKhrD5tf" }, { "uri": "QmTvvHMtJdH9BsNeC7Fj3K2ZyoPKFCLo7hAHtu2Ke5VzTu" }, { "uri": "QmPGjwNkL7EncSw8oaemu74P4FArV9SFTvbL8jDNq63V9W" } ] } },
+            { "token-id": 6, "states": { "options": [ { "uri": "QmVqTxhTDSxQXrgAdsjSeUjJWzKXThcWDj4RdBscFhP2X8" }, { "uri": "QmP9pF8S6N4R2o3XXHoBEYxty1eGeQC35TyaMkcarFnEWL" }, { "uri": "QmUbc8aDcn7ex9ZUhNVWPCMNPkCTnfp3Vcut98ZYFw72At" } ] } },
+            { "token-id": 7, "states": { "options": [ { "uri": "QmXtU8d6oAziz9gSZMGcTaZJhKngaGxApohpsBVK2QVxpN" }, { "uri": "QmcELdRFmMLXHUcwrdZE59Y2PdcbhBwK7oSESsLziTuECY" } ] } },
+            { "token-id": 8, "states": { "options": [ { "uri": "QmSr6Qi78jdTPnq3zc7agYiJGT8pu1rnxUN1n5eFZYV1EQ" }, { "uri": "QmbD4gogjdncWrErqeWuJF8JXDnBthBiNZhU7rpYTAU4QR" } ] } },
+            { "token-id": 9, "states": { "options": [ { "uri": "QmQRf8iNjrcN9gF7A6UVpuHss79owBMRRBs28EMSHKNzxz" }, { "uri": "QmeDjc6Ln2ZPWeHa1aDoNCoMsBRvzSkrdhowaLcMN3wkq9" }, { "uri": "QmR6K8HUsXT185jScgpNUTzYBSorxPoW4oCBZVh9nqbgrk" } ] } }
+        ]
+    }
+};
 
 let state = {
-    metadata: null,
+    metadata: PANN_METADATA,
     isPlaying: false,
     duration: 1800,
     activeMix: {},
     audioNodes: {}, 
     userWallet: null,
-    ownedTokens: [],
     isGlobalMode: true,
     syncInterval: null
 };
@@ -66,15 +89,15 @@ const UI = {
     progressBar: document.getElementById('progress-bar'),
     progressFill: document.getElementById('progress-fill'),
     timeCurrent: document.getElementById('time-current'),
-    loadingOverlay: document.getElementById('loading-overlay'),
-    toast: document.getElementById('toast-container')
+    loadingOverlay: document.getElementById('loading-overlay')
 };
 
 // --- INITIALIZATION ---
-async function init() {
+function init() {
     populateArtists();
     bindEvents();
-    await loadMetadata();
+    buildUI();
+    generateRandomMix(false); // Instantly builds the UI and background without network delays
 }
 
 function populateArtists() {
@@ -109,70 +132,24 @@ function bindEvents() {
     UI.progressBar.addEventListener('click', handleSeek);
 }
 
-// --- IPFS FETCHING & AGGRESSIVE CASCADE ---
-async function fetchFromIPFS(cid) {
-    for (let gateway of CONSTANTS.IPFS_GATEWAYS) {
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout per gateway
-            
-            const response = await fetch(`${gateway}${cid}`, { signal: controller.signal });
-            clearTimeout(timeoutId);
-            
-            if (response.ok) return await response.json();
-        } catch (e) {
-            console.warn(`Gateway ${gateway} failed. Cascading to next...`);
-        }
-    }
-    throw new Error("All IPFS gateways failed.");
-}
-
 function resolveIPFSUrl(uri) {
-    if (!uri || uri.includes("mock")) return "";
+    if (!uri) return "";
     const cid = uri.replace("ipfs://", "").split("/")[0];
-    return `${CONSTANTS.IPFS_GATEWAYS[0]}${cid}`;
-}
-
-async function loadMetadata() {
-    showLoading("Initializing Pann...");
-    try {
-        state.metadata = await fetchFromIPFS(CONSTANTS.JSON_CID);
-        buildUI();
-        generateRandomMix(false); 
-    } catch (e) {
-        console.error("Critical IPFS Failure:", e);
-        showToast("Network overloaded. Generating offline fallback UI.");
-        state.metadata = createFallbackMetadata();
-        buildUI();
-        generateRandomMix(false);
-    }
-    hideLoading();
-}
-
-function createFallbackMetadata() {
-    // Guarantees UI builds even if network completely fails
-    let layers = [];
-    for(let i=1; i<=9; i++) {
-        layers.push({
-            id: TOKEN_MAP[i], "token-id": i,
-            states: { options: [{ label: "Variant 1", uri: "mock" }, { label: "Variant 2", uri: "mock" }] }
-        });
-    }
-    return { layout: { layers: layers }, "audio-layout": { layers: layers } };
+    return `${CONSTANTS.IPFS_GATEWAYS[0]}${cid}`; // Routes through Cloudflare
 }
 
 // --- UI CONSTRUCTION ---
 function buildUI() {
     UI.layerControls.innerHTML = '';
     
-    const visualLayers = state.metadata.layout.layers.filter(l => l.states && l.states.options);
+    const visualLayers = state.metadata.layout.layers;
     const audioLayers = state.metadata["audio-layout"].layers;
 
-    visualLayers.forEach((vLayer, index) => {
+    visualLayers.forEach((vLayer) => {
         const tokenId = vLayer["token-id"];
         if (!tokenId || !TOKEN_MAP[tokenId]) return; 
         
-        const aLayer = audioLayers.find(a => a["token-id"] === tokenId) || audioLayers[index];
+        const aLayer = audioLayers.find(a => a["token-id"] === tokenId);
         const layerName = TOKEN_MAP[tokenId];
 
         const group = document.createElement('div');
@@ -189,7 +166,7 @@ function buildUI() {
         vLayer.states.options.forEach((opt, optIndex) => {
             const option = document.createElement('option');
             option.value = optIndex;
-            option.textContent = opt.label || `Variant ${optIndex + 1}`;
+            option.textContent = opt.label;
             option.dataset.visualUri = opt.uri;
             option.dataset.audioUri = aLayer.states.options[optIndex].uri;
             select.appendChild(option);
@@ -255,12 +232,10 @@ function renderVisuals() {
         const mixData = state.activeMix[tokenId];
         if (!mixData.visualUrl) return;
 
-        // Route Strings to the Backgrounds (Gateway & Player)
         if (TOKEN_MAP[tokenId] === 'Strings') {
             UI.playerBg.style.backgroundImage = `url(${mixData.visualUrl})`;
             UI.gatewayBg.style.backgroundImage = `url(${mixData.visualUrl})`;
         } else {
-            // Render remaining artwork floating in center
             const img = document.createElement('img');
             img.src = mixData.visualUrl;
             img.className = 'layer-img';
@@ -303,7 +278,7 @@ async function playAll() {
         }
         
         const node = state.audioNodes[tokenId];
-        if (node.src && !node.src.includes("mock")) {
+        if (node.src) {
             promises.push(new Promise((resolve) => {
                 if (node.readyState >= 3) resolve();
                 else {
@@ -319,7 +294,7 @@ async function playAll() {
         const targetTime = state.audioNodes[Object.keys(state.audioNodes)[0]]?.currentTime || 0;
         
         Object.values(state.audioNodes).forEach(node => {
-            if(node.src && !node.src.includes("mock")) {
+            if(node.src) {
                 node.currentTime = targetTime;
                 node.play().catch(e => console.warn("Auto-play prevented", e));
             }
@@ -359,7 +334,7 @@ async function handleSeek(e) {
     
     let promises = Object.values(state.audioNodes).map(node => {
         return new Promise(resolve => {
-            if(!node.src || node.src.includes("mock")) return resolve();
+            if(!node.src) return resolve();
             node.addEventListener('seeked', resolve, {once:true});
             node.currentTime = targetTime;
         });
@@ -373,7 +348,7 @@ function startSyncWatchdog() {
     clearInterval(state.syncInterval);
     state.syncInterval = setInterval(() => {
         if (!state.isPlaying) return;
-        const nodes = Object.values(state.audioNodes).filter(n => n.src && !n.src.includes("mock"));
+        const nodes = Object.values(state.audioNodes).filter(n => n.src);
         if (nodes.length < 2) return;
         
         const masterTime = nodes[0].currentTime;
@@ -417,7 +392,7 @@ function startProgressTimer() {
     setInterval(() => {
         if (!state.isPlaying) return;
         const node = Object.values(state.audioNodes)[0];
-        if (!node || !node.src || node.src.includes("mock")) return;
+        if (!node || !node.src) return;
         
         const current = node.currentTime;
         UI.progressFill.style.width = `${(current / state.duration) * 100}%`;
@@ -427,9 +402,9 @@ function startProgressTimer() {
     }, 1000);
 }
 
-// --- WEB3 (Placeholder for UI verification) ---
+// --- WEB3 ---
 async function connectWallet() {
-    if (!window.ethereum) return showToast("Install MetaMask to connect.");
+    if (!window.ethereum) return alert("Install MetaMask to connect.");
     try {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         state.userWallet = accounts[0];
@@ -437,8 +412,7 @@ async function connectWallet() {
         document.getElementById('btn-logout-wallet').classList.remove('hidden');
         document.getElementById('web3-status-bar').classList.remove('hidden');
         document.getElementById('wallet-address-display').textContent = `${state.userWallet.substring(0,6)}...${state.userWallet.substring(state.userWallet.length - 4)}`;
-        showToast("Wallet Connected.");
-    } catch (e) { showToast("Connection denied."); }
+    } catch (e) { console.error("Connection denied."); }
 }
 
 function logoutWallet() {
@@ -446,17 +420,9 @@ function logoutWallet() {
     document.getElementById('btn-connect-wallet').classList.remove('hidden');
     document.getElementById('btn-logout-wallet').classList.add('hidden');
     document.getElementById('web3-status-bar').classList.add('hidden');
-    showToast("Wallet disconnected.");
 }
 
 function showLoading(msg) { UI.loadingOverlay.classList.remove('hidden'); document.getElementById('loading-text').textContent = msg; }
 function hideLoading() { UI.loadingOverlay.classList.add('hidden'); }
-let toastTimeout;
-function showToast(msg) {
-    UI.toast.textContent = msg;
-    UI.toast.classList.remove('hidden');
-    clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => UI.toast.classList.add('hidden'), 4000);
-}
 
 init();
