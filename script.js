@@ -2,12 +2,12 @@
     const USE_LOCAL_GITHUB_FILES = false; 
     const GITHUB_BASE_URL = "./"; 
 
-    const JSON_URL = "QmepLNcj9mCDaTjVvmCM6ocr9xtjvMbWNTmaCSoaYVmqgq";
+    // Reordered for optimal public speed
     const IPFS_GATEWAYS = [
-        'https://ipfs.io/ipfs/', 
         'https://cloudflare-ipfs.com/ipfs/',
         'https://dweb.link/ipfs/',
-        'https://gateway.pinata.cloud/ipfs/'
+        'https://gateway.pinata.cloud/ipfs/',
+        'https://ipfs.io/ipfs/'
     ];
 
     const ARTISTS_LIST = [
@@ -21,6 +21,38 @@
         "Amrit", "Aarvay", "Radar with a K", "Keba Jeremiah", "Shallu Varun",
         "Jhanu", "Metapurse"
     ];
+
+    // --- ZERO-FETCH INIT: HARDCODED MASTER METADATA ---
+    // Bypasses IPFS rate limits entirely for instant UI rendering.
+    const PANN_METADATA = {
+        "name": "பண் (Pann)",
+        "layout": {
+            "layers": [
+                { "id": "Strings", "states": { "options": [{ "uri": "QmbmRmMToTbS6NQRC2BNEjVHHp9P6yNRJGzwD62QnqFP7Y", "label": "Bright" }, { "uri": "QmWCWvSsBMiSdwg2ULf63ckgN8GaXWju4nZAJ6PRcmAgfo", "label": "Dark" }, { "uri": "QmZqBpUgr1yS3s8C4K36amxXMBBvMiTegV8JhA2zvq5vmT", "label": "Ambient" }] } },
+                { "id": "Winds", "states": { "options": [{ "uri": "Qmb3CLHtFbbQbpiZ5jebxjVPbv5bC6UFnezpqrpApSKmAL", "label": "Bamboo Flute" }, { "uri": "QmUiB45C58Q8mqHpXEt9KGbkvQscdcMqdrZCbM1NLwYpwV", "label": "Penny Whistle" }, { "uri": "QmUmJSCgCuXkJ9tJwLpExf4SxvnZNLySJ6ujSGwxTJ3Dmv", "label": "Melodica" }, { "uri": "QmdyJk4e1NAP3bWTXahE1EDykDbFsRjHc9xW2RVthxUULT", "label": "Nadaswaram" }] } },
+                { "id": "Ambience", "states": { "options": [{ "uri": "QmXzwiB3BK5wUfpTtYQ4RfC9Dw2i1VDsLVnyYSXPnfg3xt", "label": "Kurinji" }, { "uri": "QmW6vRQFSSqLDmWUxXgoRuU1siZEMDcoxzj8BKZ12kZGSa", "label": "Mullai" }, { "uri": "QmQNLJ9L3RmXzL5RwQR3KYaJbZ2Fz1RLZZJaicNzf5kiMJ", "label": "Marutham" }, { "uri": "QmVhTuuS9rNBNrAEVmcXfXchUGW6ZaBME91cwwGzBwDFyp", "label": "Neidhal" }, { "uri": "Qme6JxTt7odkQK1gDFUZaL6URTgUbHMo9GKEgKqbnKD2eM", "label": "Paalai" }] } },
+                { "id": "Rhythm", "states": { "options": [{ "uri": "QmaKqFEEQ2C4ygmHQAHFoN1aTH1t55Hofh5hZtCSkq99WF", "label": "Mridangam & Latin" }, { "uri": "QmNRLwMo4cCeLAp298me2WrPidGvsHubrbvrjuQjoqHkxq", "label": "Acoustic Drums" }, { "uri": "QmNWupbdybDgGHoqd6St2nBYijVF73vtTHwssWFGRssCtk", "label": "Folk" }] } },
+                { "id": "Traditional", "states": { "options": [{ "uri": "QmU19EK7gmy4wo8zaCZyfbabWrkxEgj15LowkZZszAJk7Y", "label": "Sarangi" }, { "uri": "QmStrZzJ33o8eF4XpQVXAvstrFcV1pzuKNof7wRj7gKE7f", "label": "Veena" }, { "uri": "QmZR9UZaMniXqB5REKiK4yDJbuAKTQtmoWtwQTKKKHDcp3", "label": "Slide Guitar - Live" }] } },
+                { "id": "Voices", "states": { "options": [{ "uri": "Qmadsy39UVhtsR9V5TUTqFpLpZLWfRvTUBApMdwQv7xyTq", "label": "Solo" }, { "uri": "QmQTxQauxBL9qbj6XbLT9zsmEhsZr6Zf6RgDhVpEEM3RCj", "label": "Folk voice" }, { "uri": "QmSnk8wDVUiBH5RBFoF2T3JZsnr4Z8Yp5Pp5ds1GGMNEwj", "label": "Choir" }] } },
+                { "id": "Guitars", "states": { "options": [{ "uri": "QmaJSSmhtY5tjx1eQPR5d4ZCdCiMxevzHAhsqwUE9z3FbS", "label": "Acoustic" }, { "uri": "QmWYuyydDJFNYsBkWgMjHMRCANmencFgTTPBFAGzwKpqi8", "label": "Electric" }] } },
+                { "id": "Keys", "states": { "options": [{ "uri": "Qme2Ykbfp8YaFq6A3U1BciXafZW6wsHPAuDhSfCWAiETUC", "label": "Piano" }, { "uri": "QmQYQGA3Voq8xR8y1qEe3fR5HucuZZ7TBG4wkBKG8Lcr56", "label": "Mallet - Live" }] } },
+                { "id": "Electronic", "states": { "options": [{ "uri": "QmSfv4ZcHqjS38zWErJaZfZMBKCCYxamXqkeih4GNVuaTu", "label": "Synth & Bass" }, { "uri": "QmW6SuYciNzd7CigdKArqnrZ4Q9By3LXsK65ftwUuRhFn5", "label": "Modular" }, { "uri": "QmVBpVcrBqJqoKGCHzLBUiynkFyRXJHiG38oKsJgGPB3QL", "label": "Live reactive layer" }] } }
+            ]
+        },
+        "audio-layout": {
+            "layers": [
+                { "id": "01_Strings", "states": { "options": [{ "uri": "QmUzMyhSm2HYYexMbZp5BjRJ5wqPTCRvKvDiU8udL5AHPM" }, { "uri": "QmXdM8k6Wje2BwHrigWUmcHAYQar9BfCkQcTMdPtqajWrN" }, { "uri": "QmTLcwbXoXgU2jWjqP7hBFFFtmEJiD22Y7bUw7uSem7UKp" }] } },
+                { "id": "02_Winds", "states": { "options": [{ "uri": "Qmc8t887PbT2poBxdXsfEqxUec673aiiREJRg9fnLxJTk7" }, { "uri": "QmWfK4k67yi3aPtJ74vo4tyg7zuxGUxEzLTsTEdLUtZbnK" }, { "uri": "QmUe5QD12QpMeHRMj924d1KQTXcTAPZ31QXZZc4iYxGdsc" }, { "uri": "QmRPpPzNQunUHGR5gtHi6Gjd8zb969yQcMHZNpHJ5ihePj" }] } },
+                { "id": "03_Ambience", "states": { "options": [{ "uri": "QmfKFKHX8ptEwR7PECjPsofmkqT8hh3xueb3Hq27hGoVGj" }, { "uri": "QmbYZBUaeT6Ei25Xr9eRXtevLBtqQWEb8eEXJaUU71V9pW" }, { "uri": "QmXnHWdEnCxrgf2V3FBmSW8iaD1yBLcA4zt5ftzAshBJMy" }, { "uri": "QmX9Vpgka1FXq2HjzUhvuT7fNRgLtspdWVWfXd5fdpgymx" }, { "uri": "QmeMzFuXRU6UGkCHMv5hmYuoyZHxgGPCAuU8uBBuzNc6gL" }] } },
+                { "id": "04_Rhythm", "states": { "options": [{ "uri": "Qmd7tYFcQ2wfTi1agT8JkannB1VP8dSRypzAdY7ksvnim6" }, { "uri": "QmdwD8ix4qJmRB4SaEBuC8XV19UZR24j7fzmV8jiKBqtDG" }, { "uri": "QmV3ifuMB86MKe1GcPsZrRnSpuBkCkPfLJacqTvDD5gXPE" }] } },
+                { "id": "05_Traditional", "states": { "options": [{ "uri": "QmRaVXfrm6kvhifNcAaCnbVFYdUY3RfbGTe68qnKhrD5tf" }, { "uri": "QmTvvHMtJdH9BsNeC7Fj3K2ZyoPKFCLo7hAHtu2Ke5VzTu" }, { "uri": "QmPGjwNkL7EncSw8oaemu74P4FArV9SFTvbL8jDNq63V9W" }] } },
+                { "id": "06_Voices", "states": { "options": [{ "uri": "QmVqTxhTDSxQXrgAdsjSeUjJWzKXThcWDj4RdBscFhP2X8" }, { "uri": "QmP9pF8S6N4R2o3XXHoBEYxty1eGeQC35TyaMkcarFnEWL" }, { "uri": "QmUbc8aDcn7ex9ZUhNVWPCMNPkCTnfp3Vcut98ZYFw72At" }] } },
+                { "id": "07_Guitars", "states": { "options": [{ "uri": "QmXtU8d6oAziz9gSZMGcTaZJhKngaGxApohpsBVK2QVxpN" }, { "uri": "QmcELdRFmMLXHUcwrdZE59Y2PdcbhBwK7oSESsLziTuECY" }] } },
+                { "id": "08_Keys", "states": { "options": [{ "uri": "QmSr6Qi78jdTPnq3zc7agYiJGT8pu1rnxUN1n5eFZYV1EQ" }, { "uri": "QmbD4gogjdncWrErqeWuJF8JXDnBthBiNZhU7rpYTAU4QR" }] } },
+                { "id": "09_Electronic", "states": { "options": [{ "uri": "QmQRf8iNjrcN9gF7A6UVpuHss79owBMRRBs28EMSHKNzxz" }, { "uri": "QmeDjc6Ln2ZPWeHa1aDoNCoMsBRvzSkrdhowaLcMN3wkq9" }, { "uri": "QmR6K8HUsXT185jScgpNUTzYBSorxPoW4oCBZVh9nqbgrk" }] } }
+            ]
+        }
+    };
 
     const state = {
         metadata: null,
@@ -115,27 +147,13 @@
         });
     }
 
-    async function fetchJSON() {
-        for (const gateway of IPFS_GATEWAYS) {
-            try {
-                const res = await fetch(`${gateway}${JSON_URL}`);
-                if (res.ok) return await res.json();
-            } catch (e) {
-                console.warn(`Gateway timeout...`);
-            }
-        }
-        throw new Error("All IPFS gateways failed to load metadata.");
-    }
-
     async function loadAudioStreams() {
         UI.loadingOverlay.classList.remove('hidden');
         if (UI.loadingText) UI.loadingText.textContent = "Connecting Layers...";
         if (UI.playPauseBtn) UI.playPauseBtn.disabled = true;
 
-        const activeCIDs = Object.values(state.selections.audio).filter(cid => cid);
-        
         const loadPromises = Object.keys(state.selections.audio).map(layerId => {
-            return new Promise((resolve) => {
+            const loadPromise = new Promise((resolve) => {
                 const cid = state.selections.audio[layerId];
                 const audioNode = state.audioPool[layerId]; 
                 
@@ -173,12 +191,17 @@
                 audioNode.src = urls[attempt];
                 audioNode.load();
             });
+
+            // --- SOFT SYNC FIX: 8 Second Timeout ---
+            // If an IPFS node hangs indefinitely, skip it and unlock the UI so the rest of the music can play.
+            const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 8000));
+            return Promise.race([loadPromise, timeoutPromise]);
         });
 
         await Promise.all(loadPromises);
 
         let syncTime = 0;
-        const currentActiveNodes = Object.values(state.audioPool).filter(n => !n.paused && n.volume > 0);
+        const currentActiveNodes = Object.values(state.audioPool).filter(n => !n.paused && n.volume > 0 && n.readyState >= 3);
         if (currentActiveNodes.length > 0) syncTime = currentActiveNodes[0].currentTime;
 
         Object.keys(state.selections.audio).forEach(layerId => {
@@ -201,7 +224,9 @@
             setTimeout(() => { enforceSync(); }, 200);
             
             Object.keys(state.selections.audio).forEach(layerId => {
-                if (state.selections.audio[layerId]) state.audioPool[layerId].volume = 1;
+                if (state.selections.audio[layerId] && state.audioPool[layerId].readyState >= 3) {
+                    state.audioPool[layerId].volume = 1;
+                }
             });
         }
 
@@ -211,9 +236,10 @@
     }
 
     function enforceSync() {
-        if (state.isSeeking) return; // Prevent sync from firing during a seek operation
+        if (state.isSeeking) return;
 
-        const nodes = Object.values(state.audioPool).filter(n => !n.paused && n.src);
+        // Filter ensures we only sync tracks that have successfully loaded
+        const nodes = Object.values(state.audioPool).filter(n => !n.paused && n.src && n.readyState >= 3);
         if (nodes.length <= 1) return;
         
         const master = nodes[0];
@@ -252,7 +278,7 @@
 
         setTimeout(() => {
             enforceSync();
-            nodes.forEach(node => { node.volume = 1; });
+            nodes.forEach(node => { if(node.readyState >= 3) node.volume = 1; });
         }, 250);
 
         if (state.syncInterval) clearInterval(state.syncInterval);
@@ -285,7 +311,6 @@
         cancelAnimationFrame(animationFrameId);
     }
 
-    // --- THE ABSOLUTE BUFFER LOCK FIX ---
     async function seekTo(targetTime) {
         if (!state.duration || isNaN(targetTime)) return;
 
@@ -298,7 +323,6 @@
             return;
         }
 
-        // 1. Instantly update UI and show loading spinner
         const percent = (targetTime / state.duration) * 100;
         if (UI.progressFill) UI.progressFill.style.width = `${percent}%`;
         if (UI.currentTimeEl) UI.currentTimeEl.textContent = formatTime(targetTime);
@@ -306,14 +330,12 @@
         UI.loadingOverlay.classList.remove('hidden');
         if (UI.loadingText) UI.loadingText.textContent = "Syncing Layers...";
 
-        // 2. Pause and mute all tracks so they don't start playing staggeringly
         nodes.forEach(node => {
             node.pause();
             node.volume = 0;
-            node.playbackRate = 1.0; // Reset any previous pitch bending
+            node.playbackRate = 1.0; 
         });
 
-        // 3. Command the seek and wait for EVERY node to buffer independently
         const seekPromises = nodes.map(node => {
             return new Promise(resolve => {
                 const onReady = () => {
@@ -326,21 +348,17 @@
                 node.addEventListener('canplay', onReady);
                 
                 node.currentTime = targetTime;
-
-                // Failsafe: if a bad network hangs the event, resolve after 4s to prevent permanent lock
                 setTimeout(resolve, 4000); 
             });
         });
 
         await Promise.all(seekPromises);
 
-        // 4. Hard-snap them all to the exact same millisecond one last time to fix micro-drifts during the wait
         nodes.forEach(node => {
             node.currentTime = targetTime;
-            node.volume = 1; // Restore volume
+            if(node.readyState >= 3) node.volume = 1; 
         });
 
-        // 5. Safely resume
         state.isSeeking = false;
         UI.loadingOverlay.classList.add('hidden');
 
@@ -446,7 +464,9 @@
         populateArtists();
         
         try {
-            state.metadata = await fetchJSON();
+            // Replaced the network-blocking fetchJSON() call with local metadata
+            state.metadata = PANN_METADATA;
+            
             const visuals = (state.metadata.layout?.layers || []).slice(0, 10);
             const audios = (state.metadata["audio-layout"]?.layers || []).slice(0, 10);
 
@@ -468,9 +488,9 @@
                 
                 const isString = layerId.toLowerCase().includes('string');
                 if (isString) {
-                    UI.playerBg.appendChild(slot);
+                    if (UI.playerBg) UI.playerBg.appendChild(slot);
                 } else {
-                    UI.layerContainer.appendChild(slot);
+                    if (UI.layerContainer) UI.layerContainer.appendChild(slot);
                 }
                 state.visualSlots[layerId] = slot;
 
