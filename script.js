@@ -2,7 +2,7 @@
     const USE_LOCAL_GITHUB_FILES = false; 
     const GITHUB_BASE_URL = "./"; 
 
-    // Updated Gateways: dweb.link removed due to 403 strict CORP policies
+    // Updated Gateways: Web3-native streaming gateways
     const IPFS_GATEWAYS = [
         'https://cloudflare-ipfs.com/ipfs/',
         'https://gateway.pinata.cloud/ipfs/',
@@ -169,7 +169,7 @@
 
                 const attemptLoad = () => {
                     if (currentGatewayIndex >= urls.length) {
-                        console.warn(`[AudioEngine] All gateways choked on CID: ${cid}. Waiting 3s and looping to guarantee load...`);
+                        console.warn(`[AudioEngine] All gateways choked on CID: ${cid}. Waiting 3s and looping...`);
                         currentGatewayIndex = 0; 
                         setTimeout(attemptLoad, 3000); 
                         return; 
@@ -352,6 +352,12 @@
         cancelAnimationFrame(animationFrameId);
     }
 
+    // ============================================================================
+    // BULLETPROOF SEEK ENGINE & DEBOUNCER
+    // ============================================================================
+
+    let seekDebounceTimeout = null;
+
     async function seekTo(targetTime) {
         if (!state.duration || isNaN(targetTime)) return;
 
@@ -364,42 +370,46 @@
             return;
         }
 
-        const percent = (targetTime / state.duration) * 100;
-        if (UI.progressFill) UI.progressFill.style.width = `${percent}%`;
-        if (UI.currentTimeEl) UI.currentTimeEl.textContent = formatTime(targetTime);
-
         UI.loadingOverlay.classList.remove('hidden');
         if (UI.loadingText) UI.loadingText.textContent = "Syncing 9 Layers...";
 
+        // 1. Pause and mute all 9 tracks before jumping to prevent audio glitches
         nodes.forEach(node => {
-            node.pause();
+            if (!node.paused) node.pause();
             node.volume = 0;
             node.playbackRate = 1.0; 
+            
+            // This triggers the heavy IPFS HTTP 206 Byte-Range network request
+            node.currentTime = targetTime; 
         });
 
-        const seekPromises = nodes.map(node => {
-            return new Promise(resolve => {
-                const onReady = () => {
-                    node.removeEventListener('seeked', onReady);
-                    node.removeEventListener('canplay', onReady);
+        // 2. The Bounded ReadyState Poller
+        // We wait for all nodes to buffer the new position, BUT we strictly timeout 
+        // after 5 seconds to prevent the player from permanently bricking.
+        await new Promise((resolve) => {
+            let checks = 0;
+            const checkReady = setInterval(() => {
+                checks++;
+                // readyState 3 = HAVE_FUTURE_DATA (enough buffered to begin playing)
+                const allReady = nodes.every(n => n.readyState >= 3);
+                
+                // Force resolve if everything is ready OR if 5 seconds have passed (25 * 200ms)
+                if (allReady || checks > 25) { 
+                    clearInterval(checkReady);
                     resolve();
-                };
-                node.addEventListener('seeked', onReady);
-                node.addEventListener('canplay', onReady);
-                node.currentTime = targetTime;
-            });
+                }
+            }, 200);
         });
 
-        await Promise.all(seekPromises);
-
+        // 3. Restore volume for tracks that successfully buffered
         nodes.forEach(node => {
-            node.currentTime = targetTime;
-            if(node.readyState >= 3) node.volume = 1; 
+            if (node.readyState >= 3) node.volume = 1; 
         });
 
         state.isSeeking = false;
         UI.loadingOverlay.classList.add('hidden');
 
+        // 4. Resume Playback
         if (state.isPlaying) {
             nodes.forEach(node => {
                 const p = node.play();
@@ -422,10 +432,20 @@
 
         if (clientX === undefined || clientX === null) return;
 
+        // Calculate target time based on click/touch position
         const percentage = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
         const targetTime = percentage * state.duration;
 
-        seekTo(targetTime);
+        // Visually update the UI instantly so it feels responsive to the user
+        if (UI.progressFill) UI.progressFill.style.width = `${percentage * 100}%`;
+        if (UI.currentTimeEl) UI.currentTimeEl.textContent = formatTime(targetTime);
+
+        // Debounce the network request: Wait 300ms after the user stops moving the bar 
+        // to fire the heavy IPFS seek requests. This prevents DNS crashing.
+        clearTimeout(seekDebounceTimeout);
+        seekDebounceTimeout = setTimeout(() => {
+            seekTo(targetTime);
+        }, 300);
     }
 
     function updateLoop() {
