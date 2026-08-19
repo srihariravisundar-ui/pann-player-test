@@ -23,7 +23,6 @@
     ];
 
     // --- ZERO-FETCH INIT: HARDCODED MASTER METADATA ---
-    // Bypasses IPFS rate limits entirely for instant UI rendering.
     const PANN_METADATA = {
         "name": "பண் (Pann)",
         "layout": {
@@ -147,59 +146,104 @@
         });
     }
 
+    // ============================================================================
+    // ROBUST STAGGERED AUDIO ENGINE
+    // ============================================================================
+
+    class IPFSAudioLoader {
+        static async loadWithFailover(audioNode, cid) {
+            audioNode.crossOrigin = "anonymous";
+            audioNode.preload = "auto";
+            audioNode.volume = 0;
+
+            const urls = getUrls(cid);
+            if (urls.length === 0) return Promise.resolve(null);
+
+            // Skip network requests if this specific file is already locked in
+            if (audioNode.src && urls.some(u => audioNode.src.includes(u.split('/').pop()))) {
+                return Promise.resolve(audioNode);
+            }
+
+            return new Promise((resolve) => {
+                let currentGatewayIndex = 0;
+
+                const attemptLoad = () => {
+                    if (currentGatewayIndex >= urls.length) {
+                        console.warn(`[AudioEngine] All gateways failed for CID: ${cid}`);
+                        return resolve(null); // Resolve cleanly so Promise.all doesn't crash the stack
+                    }
+
+                    audioNode.src = urls[currentGatewayIndex];
+                    audioNode.load();
+
+                    const onCanPlay = () => {
+                        cleanup();
+                        if (audioNode.duration > state.duration) state.duration = audioNode.duration;
+                        resolve(audioNode);
+                    };
+
+                    const onError = () => {
+                        currentGatewayIndex++;
+                        cleanup();
+                        attemptLoad(); // Rotate to next gateway
+                    };
+
+                    // Prevent MaxListenersExceededWarning memory leaks
+                    const cleanup = () => {
+                        audioNode.removeEventListener('canplaythrough', onCanPlay);
+                        audioNode.removeEventListener('loadeddata', onCanPlay);
+                        audioNode.removeEventListener('error', onError);
+                    };
+
+                    audioNode.addEventListener('canplaythrough', onCanPlay, { once: true });
+                    audioNode.addEventListener('loadeddata', onCanPlay, { once: true });
+                    audioNode.addEventListener('error', onError);
+                };
+
+                attemptLoad();
+            });
+        }
+
+        static async loadAllStaggered(tracks, delayMs = 150) {
+            const promises = tracks.map((track, index) => {
+                return new Promise((resolve) => {
+                    setTimeout(async () => {
+                        try {
+                            const loadPromise = this.loadWithFailover(track.audioNode, track.cid);
+                            // Soft-Sync 8-second limit per track. If IPFS hangs, we skip it.
+                            const timeoutPromise = new Promise(r => setTimeout(() => r(null), 8000));
+                            const result = await Promise.race([loadPromise, timeoutPromise]);
+                            resolve({ success: !!result, layerId: track.layerId });
+                        } catch (err) {
+                            resolve({ success: false, layerId: track.layerId });
+                        }
+                    }, index * delayMs); // The magic stagger that fixes ERR_NAME_NOT_RESOLVED
+                });
+            });
+            return Promise.all(promises);
+        }
+    }
+
     async function loadAudioStreams() {
         UI.loadingOverlay.classList.remove('hidden');
         if (UI.loadingText) UI.loadingText.textContent = "Connecting Layers...";
         if (UI.playPauseBtn) UI.playPauseBtn.disabled = true;
 
-        const loadPromises = Object.keys(state.selections.audio).map(layerId => {
-            const loadPromise = new Promise((resolve) => {
-                const cid = state.selections.audio[layerId];
-                const audioNode = state.audioPool[layerId]; 
-                
-                if (!cid || !audioNode) { resolve(null); return; }
-
-                const urls = getUrls(cid);
-                if (urls.length === 0) { resolve(null); return; }
-
-                if (audioNode.src && urls.some(u => audioNode.src.includes(u.split('/').pop()))) {
-                    resolve({ layerId, audioNode });
-                    return;
-                }
-
-                audioNode.volume = 0; 
-                let attempt = 0;
-
-                const onCanPlay = () => {
-                    if (audioNode.duration > state.duration) state.duration = audioNode.duration;
-                    resolve({ layerId, audioNode });
-                };
-
-                audioNode.addEventListener('canplaythrough', onCanPlay, { once: true });
-                audioNode.addEventListener('loadeddata', onCanPlay, { once: true });
-
-                audioNode.addEventListener('error', () => { 
-                    attempt++;
-                    if (attempt < urls.length) {
-                        audioNode.src = urls[attempt];
-                        audioNode.load();
-                    } else { 
-                        resolve(null); 
-                    }
-                }); 
-                
-                audioNode.src = urls[attempt];
-                audioNode.load();
-            });
-
-            // --- SOFT SYNC FIX: 8 Second Timeout ---
-            // If an IPFS node hangs indefinitely, skip it and unlock the UI so the rest of the music can play.
-            const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 8000));
-            return Promise.race([loadPromise, timeoutPromise]);
+        const tracksToLoad = [];
+        
+        Object.keys(state.selections.audio).forEach(layerId => {
+            const cid = state.selections.audio[layerId];
+            const audioNode = state.audioPool[layerId]; 
+            
+            if (cid && audioNode) {
+                tracksToLoad.push({ layerId, cid, audioNode });
+            }
         });
 
-        await Promise.all(loadPromises);
+        // 1. Fetch tracks safely using the Staggered Engine
+        await IPFSAudioLoader.loadAllStaggered(tracksToLoad, 150);
 
+        // 2. Synchronize play state
         let syncTime = 0;
         const currentActiveNodes = Object.values(state.audioPool).filter(n => !n.paused && n.volume > 0 && n.readyState >= 3);
         if (currentActiveNodes.length > 0) syncTime = currentActiveNodes[0].currentTime;
@@ -235,6 +279,10 @@
         UI.loadingOverlay.classList.add('hidden');
     }
 
+    // ============================================================================
+    // PLAYER CONTROLS & SYNC
+    // ============================================================================
+
     function enforceSync() {
         if (state.isSeeking) return;
 
@@ -267,7 +315,7 @@
             node.volume = 0;
             node.currentTime = timeToSet; 
             const p = node.play();
-            if (p !== undefined) { p.catch(err => console.warn("Safari blocked play", err)); }
+            if (p !== undefined) { p.catch(err => console.warn("Browser blocked play", err)); }
         });
 
         state.isPlaying = true;
@@ -401,6 +449,10 @@
         animationFrameId = requestAnimationFrame(updateLoop);
     }
 
+    // ============================================================================
+    // VISUALS & INIT
+    // ============================================================================
+
     function updateVisuals(changedLayerId = null) {
         if (!state.metadata) return;
         const visuals = (state.metadata.layout?.layers || []).slice(0, 10);
@@ -464,7 +516,6 @@
         populateArtists();
         
         try {
-            // Replaced the network-blocking fetchJSON() call with local metadata
             state.metadata = PANN_METADATA;
             
             const visuals = (state.metadata.layout?.layers || []).slice(0, 10);
@@ -537,7 +588,7 @@
             updateVisuals(); 
 
         } catch (e) {
-            console.error("Failed to load metadata", e);
+            console.error("Failed to initialize metadata and layers", e);
         }
     }
 
