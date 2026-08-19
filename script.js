@@ -61,7 +61,8 @@
         isPlaying: false,
         duration: 0,
         syncInterval: null,
-        isSeeking: false
+        isSeeking: false,
+        isBuffering: false // Strict Buffer Lock State
     };
 
     let animationFrameId = null;
@@ -147,11 +148,11 @@
     }
 
     // ============================================================================
-    // ROBUST STAGGERED AUDIO ENGINE
+    // STRICT ALL-OR-NOTHING IPFS ENGINE
     // ============================================================================
 
     class IPFSAudioLoader {
-        static async loadWithFailover(audioNode, cid) {
+        static async loadRelentless(audioNode, cid) {
             audioNode.crossOrigin = "anonymous";
             audioNode.preload = "auto";
             audioNode.volume = 0;
@@ -169,8 +170,10 @@
 
                 const attemptLoad = () => {
                     if (currentGatewayIndex >= urls.length) {
-                        console.warn(`[AudioEngine] All gateways failed for CID: ${cid}`);
-                        return resolve(null); // Resolve cleanly so Promise.all doesn't crash the stack
+                        console.warn(`[AudioEngine] All gateways choked on CID: ${cid}. Waiting 3s and looping to guarantee load...`);
+                        currentGatewayIndex = 0; // Reset
+                        setTimeout(attemptLoad, 3000); // Relentless retry. We DO NOT SKIP.
+                        return; 
                     }
 
                     audioNode.src = urls[currentGatewayIndex];
@@ -188,7 +191,6 @@
                         attemptLoad(); // Rotate to next gateway
                     };
 
-                    // Prevent MaxListenersExceededWarning memory leaks
                     const cleanup = () => {
                         audioNode.removeEventListener('canplaythrough', onCanPlay);
                         audioNode.removeEventListener('loadeddata', onCanPlay);
@@ -208,16 +210,10 @@
             const promises = tracks.map((track, index) => {
                 return new Promise((resolve) => {
                     setTimeout(async () => {
-                        try {
-                            const loadPromise = this.loadWithFailover(track.audioNode, track.cid);
-                            // Soft-Sync 8-second limit per track. If IPFS hangs, we skip it.
-                            const timeoutPromise = new Promise(r => setTimeout(() => r(null), 8000));
-                            const result = await Promise.race([loadPromise, timeoutPromise]);
-                            resolve({ success: !!result, layerId: track.layerId });
-                        } catch (err) {
-                            resolve({ success: false, layerId: track.layerId });
-                        }
-                    }, index * delayMs); // The magic stagger that fixes ERR_NAME_NOT_RESOLVED
+                        // NO timeout wrappers. We wait absolutely for the relentless loader.
+                        await this.loadRelentless(track.audioNode, track.cid);
+                        resolve({ success: true, layerId: track.layerId });
+                    }, index * delayMs);
                 });
             });
             return Promise.all(promises);
@@ -226,7 +222,7 @@
 
     async function loadAudioStreams() {
         UI.loadingOverlay.classList.remove('hidden');
-        if (UI.loadingText) UI.loadingText.textContent = "Connecting Layers...";
+        if (UI.loadingText) UI.loadingText.textContent = "Connecting 9 Layers...";
         if (UI.playPauseBtn) UI.playPauseBtn.disabled = true;
 
         const tracksToLoad = [];
@@ -240,7 +236,7 @@
             }
         });
 
-        // 1. Fetch tracks safely using the Staggered Engine
+        // 1. Await 100% resolution. UI stays locked until every single track is present.
         await IPFSAudioLoader.loadAllStaggered(tracksToLoad, 150);
 
         // 2. Synchronize play state
@@ -280,13 +276,12 @@
     }
 
     // ============================================================================
-    // PLAYER CONTROLS & SYNC
+    // PLAYER CONTROLS & STRICT SYNC
     // ============================================================================
 
     function enforceSync() {
-        if (state.isSeeking) return;
+        if (state.isSeeking || state.isBuffering) return;
 
-        // Filter ensures we only sync tracks that have successfully loaded
         const nodes = Object.values(state.audioPool).filter(n => !n.paused && n.src && n.readyState >= 3);
         if (nodes.length <= 1) return;
         
@@ -296,8 +291,10 @@
             const drift = node.currentTime - master.currentTime;
             
             if (Math.abs(drift) > 0.2) {
+                // Hard snap if it drifted too far
                 node.currentTime = master.currentTime;
             } else if (Math.abs(drift) > 0.03) {
+                // Micro pitch-adjustment to bend them back into alignment
                 node.playbackRate = master.playbackRate - (drift * 0.4); 
             } else {
                 node.playbackRate = 1.0;
@@ -376,7 +373,7 @@
         if (UI.currentTimeEl) UI.currentTimeEl.textContent = formatTime(targetTime);
 
         UI.loadingOverlay.classList.remove('hidden');
-        if (UI.loadingText) UI.loadingText.textContent = "Syncing Layers...";
+        if (UI.loadingText) UI.loadingText.textContent = "Syncing 9 Layers...";
 
         nodes.forEach(node => {
             node.pause();
@@ -384,6 +381,7 @@
             node.playbackRate = 1.0; 
         });
 
+        // Strict wait: EVERY track must confirm it has sought to the correct spot
         const seekPromises = nodes.map(node => {
             return new Promise(resolve => {
                 const onReady = () => {
@@ -391,12 +389,9 @@
                     node.removeEventListener('canplay', onReady);
                     resolve();
                 };
-                
                 node.addEventListener('seeked', onReady);
                 node.addEventListener('canplay', onReady);
-                
                 node.currentTime = targetTime;
-                setTimeout(resolve, 4000); 
             });
         });
 
@@ -531,6 +526,41 @@
                 audio.loop = true;
                 audio.preload = "auto";
                 audio.preservesPitch = false;
+
+                // --- GLOBAL BAND-PAUSE BUFFER LOCK ---
+                // If this specific track drops due to bad internet, stop ALL tracks
+                audio.addEventListener('waiting', () => {
+                    if (!state.isPlaying || state.isSeeking) return;
+                    console.log(`[Player] ${layerId} lost connection. Pausing all 9 layers to preserve sync.`);
+                    state.isBuffering = true;
+                    Object.values(state.audioPool).forEach(n => n.pause());
+                    UI.loadingOverlay.classList.remove('hidden');
+                    if (UI.loadingText) UI.loadingText.textContent = "Buffering Stream...";
+                });
+
+                // Once this track recovers, check if the rest of the band is ready to resume
+                audio.addEventListener('canplay', () => {
+                    if (!state.isPlaying || state.isSeeking || !state.isBuffering) return;
+                    
+                    const allReady = Object.values(state.audioPool).filter(n => n.src).every(n => n.readyState >= 3);
+                    if (allReady) {
+                        console.log("[Player] All 9 layers buffered. Re-locking sync and resuming play.");
+                        state.isBuffering = false;
+                        UI.loadingOverlay.classList.add('hidden');
+                        
+                        // Snap everyone to the master timestamp to undo any drift during the pause
+                        const nodes = Object.values(state.audioPool).filter(n => n.src);
+                        const masterTime = nodes[0].currentTime;
+                        nodes.forEach(n => n.currentTime = masterTime);
+                        
+                        // Resume the whole band
+                        nodes.forEach(n => {
+                            const p = n.play();
+                            if (p !== undefined) p.catch(() => {});
+                        });
+                    }
+                });
+
                 state.audioPool[layerId] = audio;
 
                 const slot = document.createElement('div');
